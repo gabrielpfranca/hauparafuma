@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="tet">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e7c66" />
+  <meta name="description" content="Hau Para Fuma — aplikasaun ba ema ne'ebé hakarak para fuma iha Timor-Leste." />
+  <title>Hau Para Fuma</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <noscript>
+    <p style="padding:2rem">Aplikasaun ne'e presiza JavaScript atu funsiona.</p>
+  </noscript>
+
+  <div id="app" aria-busy="true">
+    <div class="boot">
+      <div class="boot__mark" aria-hidden="true">🌱</div>
+      <p class="boot__text">Hau Para Fuma</p>
+    </div>
+  </div>
+
+  <!-- SOS craving button, always reachable -->
+  <button id="sos" class="sos" hidden aria-label="Hakarak fuma — hetan tulun">
+    <span class="sos__icon" aria-hidden="true">🆘</span>
+    <span class="sos__label" data-i18n="sos.button">Hakarak fuma!</span>
+  </button>
+
+  <nav id="tabbar" class="tabbar" hidden aria-label="Navegasaun prinsipál"></nav>
+
+  <div id="sheet" class="sheet" hidden role="dialog" aria-modal="true">
+    <div class="sheet__backdrop" data-sheet-close></div>
+    <div class="sheet__panel" role="document">
+      <header class="sheet__head">
+        <h2 id="sheet-title" class="sheet__title"></h2>
+        <button class="sheet__close" data-sheet-close aria-label="Taka">✕</button>
+      </header>
+      <div id="sheet-body" class="sheet__body"></div>
+    </div>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

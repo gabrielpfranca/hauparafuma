@@ -1,0 +1,6 @@
+{
+  "//": "Scopes app/ as ES modules so Node's test runner can import the same files the browser loads. The browser ignores this file; it exists only so `import` works under `node --test` while server/ and tools/ stay CommonJS.",
+  "name": "hauparafuma-app",
+  "private": true,
+  "type": "module"
+}

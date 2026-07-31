@@ -1,0 +1,18 @@
+# Dependencies. The app itself has none; node_modules here only ever holds
+# symlinks to a globally installed Playwright for running the smoke test.
+node_modules/
+
+# Community server data (JSON store created at runtime)
+server/data/
+
+# Smoke-test output
+tests/screens/
+
+# Logs and editor noise
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
