@@ -1,0 +1,38 @@
+{
+  "name": "Hau Para Fuma",
+  "short_name": "Para Fuma",
+  "description": "Aplikasaun apoiu ba ema ne'ebe hakarak para fuma. Mensajen loron-loron, konta osan no saude, komunidade, no ferramenta distrasaun.",
+  "lang": "tet",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1412",
+  "theme_color": "#0e7c66",
+  "categories": ["health", "lifestyle", "medical"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Hakarak fuma - tulun lalais",
+      "short_name": "SOS",
+      "url": "./index.html#/sos",
+      "description": "Abertura direita ba ferramenta kontra hakarak fuma"
+    },
+    {
+      "name": "Jogu distrasaun",
+      "short_name": "Jogu",
+      "url": "./index.html#/jogu"
+    },
+    {
+      "name": "Komunidade",
+      "short_name": "Komunidade",
+      "url": "./index.html#/komunidade"
+    }
+  ]
+}

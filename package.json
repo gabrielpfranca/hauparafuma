@@ -1,0 +1,31 @@
+{
+  "name": "hauparafuma",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hau Para Fuma — aplikasaun apoiu para fuma iha lian Tetun, ba Timor-Leste. Tetum-language smoking cessation PWA, structured after the WHO/ITU mTobaccoCessation handbook.",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node tools/serve.js 8080",
+    "serve": "node tools/serve.js 8080",
+    "server": "node server/server.js",
+    "icons": "node tools/make-icons.mjs",
+    "test": "node --test tests/unit.mjs",
+    "test:smoke": "node tests/smoke.mjs",
+    "test:all": "npm test && npm run test:smoke"
+  },
+  "keywords": [
+    "tetum",
+    "tetun",
+    "timor-leste",
+    "smoking-cessation",
+    "mhealth",
+    "who",
+    "mtobaccocessation",
+    "pwa",
+    "offline-first"
+  ]
+}
