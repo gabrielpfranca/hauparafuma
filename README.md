@@ -79,6 +79,9 @@ Não há passo de compilação e não há dependências obrigatórias.
 npm start          # serve a app em http://localhost:8080
 ```
 
+No Windows, sem terminal: clique duas vezes em **`start.bat`** — abre o servidor e o
+browser sozinho.
+
 Servidor da comunidade (opcional — sem ele a app corre em modo local e diz isso no ecrã):
 
 ```bash
