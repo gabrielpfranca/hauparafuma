@@ -43,7 +43,11 @@ const DEFAULTS = Object.freeze({
     eveningAt: 19 * 60,
     quietFrom: 22 * 60,
     quietTo: 6 * 60,
-    apiBase: '',          // empty => community runs in local-only mode
+    // The community server ships with the app: it is the origin the app was
+    // served from, found by community.detectServer(). There is deliberately no
+    // UI for this — it is not a choice a person should have to understand.
+    apiBase: '',          // override without UI (tests, future per-municipality rooms)
+    apiDetected: '',      // origin found to serve /api; empty => local-only mode
   },
 
   /** Delivered programme messages + the person's own replies. One thread. */

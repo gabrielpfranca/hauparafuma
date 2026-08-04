@@ -468,6 +468,13 @@ function armNotifications() {
     notif.cancel();
     return;
   }
+
+  // Web Push, when a server is known. This is the only place it is subscribed:
+  // arming happens on boot, on delivery, and whenever notifications are turned
+  // on, so there is no path that enables notifications and skips push.
+  // subscribePush() ignores an empty base, so calling it unconditionally is safe.
+  notif.subscribePush(community.serverBase(), s.community.deviceId);
+
   const at = programme.nextDueAt({
     quitDate: s.quit.date,
     slotTimes: { 0: s.settings.morningAt, 1: s.settings.eveningAt },
@@ -547,6 +554,16 @@ async function boot() {
   }
 
   notif.initServiceWorker();
+
+  // If this origin also serves the API, adopt it: the community then works with
+  // no setup. Repaint when it turns out we have a server after all.
+  community.detectServer().then((found) => {
+    if (!found) return;
+    community.sync();
+    // Now that a server is known, push can be subscribed.
+    armNotifications();
+    refresh();
+  });
 
   window.addEventListener('hashchange', render);
 

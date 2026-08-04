@@ -10,6 +10,6 @@ if errorlevel 1 (
   exit /b 1
 )
 
-start "Hau Para Fuma - servidor" cmd /k node tools\serve.js 8080
+start "Hau Para Fuma - servidor" cmd /k node server\server.js
 timeout /t 1 /nobreak >nul
 start http://localhost:8080

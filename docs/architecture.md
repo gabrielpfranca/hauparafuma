@@ -94,13 +94,31 @@ valioso (diário antigo, espelho do feed) em vez de perder a contagem.
 
 ## Comunidade: dois adaptadores, uma interface
 
-`community.js` funciona em dois modos, escolhidos por `settings.apiBase`:
+`community.js` funciona em dois modos:
 
-- **local** (sem servidor) — as publicações ficam no dispositivo. A app **diz isto no
-  ecrã** (`com.local`) em vez de fingir que chegaram a alguém.
 - **remoto** — `server/server.js`. Escritas otimistas: a publicação aparece de imediato e
   vai para uma `outbox` se não houver rede, sincronizando depois. Quem finalmente ganha
   coragem para escrever "ha'u fila fali fuma" sem rede não pode perder esse texto.
+- **local** (sem servidor) — as publicações ficam no dispositivo. A app **diz isto no
+  ecrã** (`com.local`) em vez de fingir que chegaram a alguém.
+
+**O servidor vem embutido, não é uma escolha do utilizador.** `detectServer()` sonda
+`/api/health` na própria origem de onde a app foi servida; como `server/server.js` serve
+a app *e* a API, a comunidade funciona sem que ninguém abra as definições. Não existe
+campo de servidor na interface — é uma decisão que a pessoa não deve ter de perceber.
+
+O valor detetado é **gravado**, não apenas mantido em memória. Offline a sondagem falha, e
+esquecer o servidor faria a app cair para modo local e gravar a publicação como local em
+vez de a pôr na `outbox` — exatamente a publicação que a `outbox` existe para salvar.
+
+`settings.apiBase` continua a existir como *override* sem interface (usado pelos testes,
+e o gancho natural para salas por município, se um dia forem precisas).
+
+Consequência de servir tudo na mesma origem: **o limite de pedidos aplica-se só a
+`/api/`**. Um carregamento da app são dezenas de pedidos de módulos; contá-los esgotaria o
+limite antes de alguém publicar, e atrás de um NAT de operadora — normal em Timor-Leste —
+tiraria a comunidade a toda a gente nesse gateway ao mesmo tempo. Coberto por
+`tests/single-origin.mjs`.
 
 O servidor revalida tudo o que o cliente valida: o cliente não é fronteira de confiança.
 IDs de dispositivo nunca são devolvidos a outros clientes (`publicPost()`).
@@ -145,9 +163,14 @@ O motor do programa não precisaria de tocar-se, e é aí que está a lógica qu
   fronteiras, palavras-chave, catch-up, matemática de dinheiro e saúde, Fagerström,
   medalhas, minigame, formatação em Tétum.
 - `npm run test:smoke` — 79 asserções num Chromium em tamanho de telemóvel: percurso
-  completo do utilizador, comunidade real entre **dois dispositivos**, minigame até
-  vencer, offline, e uma varredura que falha se alguma string em português ou inglês
-  aparecer na interface.
+  completo do utilizador, comunidade real entre **dois dispositivos** em **duas origens**
+  (CORS + `apiBase` manual), minigame até vencer, offline, e uma varredura que falha se
+  alguma string em português ou inglês aparecer na interface.
+- `npm run test:origin` — 10 asserções na topologia de produção: app e API na mesma
+  origem, comunidade a funcionar sem qualquer configuração, e o limite de pedidos a não
+  travar o carregamento da app.
 
-Dois bugs reais foram encontrados por estes testes e corrigidos: as avaliações dos dias
-30/90/180 nunca eram feitas, e o botão SOS cobria o botão de enviar mensagem.
+Três bugs reais foram encontrados por estes testes e corrigidos: as avaliações dos dias
+30/90/180 nunca eram feitas, o botão SOS cobria o botão de enviar mensagem, e — ao juntar
+a app e a API na mesma origem — o limite de pedidos por IP passou a contar os ficheiros
+estáticos, esgotando-se durante o carregamento e devolvendo 429 à comunidade.

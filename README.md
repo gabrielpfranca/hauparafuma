@@ -75,37 +75,65 @@ de dias são preservados.
 
 Não há passo de compilação e não há dependências obrigatórias.
 
-```bash
-npm start          # serve a app em http://localhost:8080
-```
-
-No Windows, sem terminal: clique duas vezes em **`start.bat`** — abre o servidor e o
-browser sozinho.
-
-Servidor da comunidade (opcional — sem ele a app corre em modo local e diz isso no ecrã):
+Um só comando: o mesmo processo serve a app **e** a comunidade.
 
 ```bash
-npm run server     # http://localhost:8081
+npm start          # http://localhost:8080
 ```
 
-Depois, na app: **Ha'u → Servidór komunidade** → `http://localhost:8081`.
+No Windows, sem terminal: clique duas vezes em **`start.bat`**.
+
+A comunidade **não precisa de configuração**. A app procura o servidor na própria origem
+de onde foi servida, por isso funciona logo — não há nenhum campo de servidor na
+interface. Se a app for servida por um host só-estático (sem `/api`), ela diz no ecrã que
+está em modo local, em vez de fingir que as publicações chegaram a alguém.
 
 Notificações push (opcional, requer `npm install web-push`):
 
 ```bash
-VAPID_PUBLIC=… VAPID_PRIVATE=… VAPID_SUBJECT=mailto:voce@exemplo.org npm run server
+VAPID_PUBLIC=… VAPID_PRIVATE=… VAPID_SUBJECT=mailto:voce@exemplo.org npm start
 ```
 
 ### Testes
 
 ```bash
-npm test           # 57 testes unitários das camadas puras
-npm run test:smoke # 79 asserções ponta-a-ponta num Chromium em tamanho de telemóvel
+npm test            # 57 testes unitários das camadas puras
+npm run test:smoke  # 79 asserções ponta-a-ponta num Chromium em tamanho de telemóvel
+npm run test:origin # 10 asserções na topologia de produção (uma só origem)
+npm run test:all    # os três
 ```
 
 O smoke test percorre o registo, o painel, a conversa, a comunidade real **entre dois
 dispositivos**, o minigame até vencer, o modo offline, e falha se alguma string em
 português ou inglês aparecer na interface. Guarda capturas em `tests/screens/`.
+
+`test:origin` cobre o que se publica de facto: app e API na mesma origem, comunidade a
+funcionar **sem ninguém abrir as definições**, e a garantia de que o limite de pedidos da
+API não trava o carregamento da app.
+
+---
+
+## Publicar
+
+O `server/server.js` serve a app e a API no mesmo porto e respeita `PORT`, por isso
+qualquer host de Node serve. Já existe `railway.json` a fixar o comando de arranque.
+
+> ### ⚠️ Sem um volume, a comunidade perde tudo
+>
+> Em Railway, Fly ou Render o sistema de ficheiros é **efémero**: a cada redeploy o
+> `server/data/community.json` desaparece e com ele o histórico inteiro da comunidade.
+>
+> **Anexe um volume e aponte `DATA_DIR` para o ponto de montagem** (ex.: volume em
+> `/data` → `DATA_DIR=/data`). É o único passo de configuração obrigatório.
+
+Variáveis de ambiente:
+
+| Variável | Para quê | Omissão |
+|---|---|---|
+| `PORT` | porto HTTP | `8080` |
+| `DATA_DIR` | onde fica o feed — **use um volume** | `server/data` |
+| `APP_DIR` | onde estão os ficheiros da app | `app/` |
+| `VAPID_*` | Web Push (opcional) | desligado |
 
 ---
 
