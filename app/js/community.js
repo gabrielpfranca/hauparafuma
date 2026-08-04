@@ -58,9 +58,62 @@ export function canPostNow(now = Date.now()) {
 /* Adaptadór                                                           */
 /* ------------------------------------------------------------------ */
 
+function clean(raw) {
+  return String(raw || '').trim().replace(/\/+$/, '');
+}
+
+/**
+ * Where the feed lives. Normally this is whatever `detectServer()` found — the
+ * origin the app was served from. `settings.apiBase` is an override with no UI
+ * (see store.js); it wins when set.
+ */
 function apiBase() {
-  const raw = store.get().settings.apiBase || '';
-  return raw.trim().replace(/\/+$/, '');
+  const s = store.get().settings;
+  return clean(s.apiBase) || clean(s.apiDetected);
+}
+
+/** The resolved server, for callers outside this module (push subscription). */
+export function serverBase() {
+  return apiBase();
+}
+
+/**
+ * Ask our own origin whether it also serves the API. When the app is deployed
+ * alongside `server/server.js` this makes the community work with no setup at
+ * all — the person never sees a server field.
+ *
+ * The result is persisted rather than probed fresh each time, because offline
+ * the probe fails, and forgetting the server would drop the app to local mode:
+ * posts would be written as local-only instead of being queued in the outbox,
+ * which is exactly the post the outbox exists to protect.
+ *
+ * Returns true when the stored value changed, so the caller can repaint.
+ */
+export async function detectServer() {
+  if (typeof location === 'undefined') return false;
+  // A hand-configured server is a deliberate choice; don't second-guess it.
+  if (clean(store.get().settings.apiBase)) return false;
+  if (!/^https?:$/.test(location.protocol)) return false;
+
+  const origin = clean(location.origin);
+  const known = clean(store.get().settings.apiDetected);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${origin}/api/health`, { signal: controller.signal });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (!data || data.ok !== true) return false;
+    if (known === origin) return false;
+    store.update((s) => { s.settings.apiDetected = origin; }, 'settings');
+    return true;
+  } catch {
+    // Offline, or this origin serves only static files. Keep what we knew.
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function mode() {

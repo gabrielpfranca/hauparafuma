@@ -3,7 +3,7 @@
 node_modules/
 
 # Community server data (JSON store created at runtime)
-server/data/
+server/data*/
 
 # Smoke-test output
 tests/screens/

@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 /**
- * SERVIDÓR KOMUNIDADE — shared feed + optional Web Push.
+ * SERVIDÓR — the PWA plus the shared community feed, on one origin.
+ *
+ * Serving both from the same process is what lets the community work with no
+ * setup: the client finds the API at its own origin, so nobody has to type a
+ * server address into the settings. Non-`/api/` GETs are served from `app/`.
  *
  * Zero required dependencies: `node server/server.js` runs it. That matters for
  * a deployment in a ministry or clinic where installing an npm tree may not be
@@ -9,6 +13,8 @@
  *
  * Storage is a JSON file, written atomically. Adequate for a pilot of a few
  * thousand posts; swap `readDB`/`writeDB` for a real database before scaling.
+ * On a host with an ephemeral filesystem (Railway, Fly, Render), point DATA_DIR
+ * at a mounted volume or every redeploy wipes the community's history.
  *
  * Usage:
  *   node server/server.js
@@ -23,10 +29,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const PORT = Number(process.env.PORT || 8081);
+const PORT = Number(process.env.PORT || 8080);
 const HOST = process.env.HOST || '0.0.0.0';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'community.json');
+/** The PWA itself, served from this same origin so the client needs no config. */
+const APP_DIR = path.resolve(process.env.APP_DIR || path.join(__dirname, '..', 'app'));
 
 const MAX_POST = 500;
 const MAX_REPLY = 300;
@@ -34,8 +42,13 @@ const MAX_NAME = 24;
 const HIDE_AT_REPORTS = 3;
 const FEED_LIMIT = 100;
 const POST_COOLDOWN_MS = 30 * 1000;
-/** Requests per minute per IP, across all endpoints. */
-const RATE_LIMIT = 60;
+/**
+ * API requests per minute per IP. Static assets are not counted (see the route
+ * handler). Set with room to spare because a whole village can share one
+ * carrier NAT address, and the failure mode — the community going silent — is
+ * worse than the abuse this guards against.
+ */
+const RATE_LIMIT = 240;
 
 /* ------------------------------------------------------------------ */
 /* Rai dadus                                                           */
@@ -218,6 +231,70 @@ function readBody(req, limit = 64 * 1024) {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* Aplikasaun estátika                                                 */
+/* ------------------------------------------------------------------ */
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
+};
+
+/**
+ * Serve the PWA from the same origin as the API. One deployment, one URL, and
+ * the client can find the community server without anybody typing it in.
+ */
+function serveStatic(pathname, res) {
+  let rel = pathname;
+  if (rel.endsWith('/')) rel += 'index.html';
+  // Hash routing means a path with no extension is a deep link, not a file.
+  if (!path.extname(rel)) rel = '/index.html';
+
+  const target = path.join(APP_DIR, path.normalize(rel));
+  // Never serve outside the app directory.
+  if (!target.startsWith(APP_DIR)) {
+    send(res, 403, { error: 'forbidden' });
+    return;
+  }
+
+  fs.readFile(target, (err, data) => {
+    if (err) {
+      fs.readFile(path.join(APP_DIR, 'index.html'), (err2, html) => {
+        if (err2) {
+          send(res, 404, { error: 'not_found' });
+          return;
+        }
+        res.writeHead(200, {
+          'content-type': MIME['.html'],
+          'cache-control': 'no-cache',
+        }).end(html);
+      });
+      return;
+    }
+
+    const ext = path.extname(target).toLowerCase();
+    // index.html and the service worker must revalidate, otherwise a phone stays
+    // pinned to an old build forever and never sees an update.
+    const volatile = ext === '.html' || target.endsWith(`${path.sep}sw.js`);
+    res.writeHead(200, {
+      'content-type': MIME[ext] || 'application/octet-stream',
+      'cache-control': volatile ? 'no-cache' : 'public, max-age=3600',
+      'service-worker-allowed': '/',
+      'x-content-type-options': 'nosniff',
+    }).end(data);
+  });
+}
+
 /** What the client is allowed to see: never other people's device ids. */
 function publicPost(post) {
   return {
@@ -256,11 +333,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (rateLimited(ip)) {
-    send(res, 429, { error: 'rate_limited' });
-    return;
-  }
-
   let url;
   try {
     url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -269,6 +341,15 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   const route = url.pathname.replace(/\/+$/, '') || '/';
+
+  // Rate-limit the API only. Serving the app from this same origin means one
+  // page load is dozens of module requests; counting those would exhaust the
+  // budget before anyone posts, and behind a shared mobile-carrier NAT — normal
+  // in Timor-Leste — it would lock out everyone on that gateway at once.
+  if (route.startsWith('/api/') && rateLimited(ip)) {
+    send(res, 429, { error: 'rate_limited' });
+    return;
+  }
 
   try {
     /* ---- health ---- */
@@ -478,6 +559,12 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Anything that is not the API is the app itself.
+    if (req.method === 'GET' && !route.startsWith('/api/')) {
+      serveStatic(url.pathname, res);
+      return;
+    }
+
     send(res, 404, { error: 'not_found' });
   } catch (err) {
     const message = String(err && err.message);
@@ -492,7 +579,8 @@ const server = http.createServer(async (req, res) => {
 
 readDB();
 server.listen(PORT, HOST, () => {
-  console.log(`[server] Hau Para Fuma — servidór komunidade iha http://${HOST}:${PORT}`);
+  console.log(`[server] Hau Para Fuma iha http://${HOST}:${PORT}`);
+  console.log(`[server] aplikasaun: ${APP_DIR}`);
   console.log(`[server] dadus: ${DB_FILE}`);
 });
 

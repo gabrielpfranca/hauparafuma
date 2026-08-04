@@ -9,13 +9,14 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node tools/serve.js 8080",
+    "start": "node server/server.js",
     "serve": "node tools/serve.js 8080",
     "server": "node server/server.js",
     "icons": "node tools/make-icons.mjs",
     "test": "node --test tests/unit.mjs",
     "test:smoke": "node tests/smoke.mjs",
-    "test:all": "npm test && npm run test:smoke"
+    "test:origin": "node tests/single-origin.mjs",
+    "test:all": "npm test && npm run test:smoke && npm run test:origin"
   },
   "keywords": [
     "tetum",

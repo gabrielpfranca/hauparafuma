@@ -384,8 +384,6 @@ const STR = {
   'me.erase.confirm':    'Ida ne\'e sei hamoos buat hotu no la bele fila fali. Kontinua?',
   'me.about':            'Kona-ba aplikasaun ne\'e',
   'me.about.body':       'Hau Para Fuma dezeña tuir guia OMS/ITU "Be He@lthy, Be Mobile — mTobaccoCessation", ne\'ebé rekomenda programa mensajen fulan 6 ho apoiu dalan rua.\n\nAplikasaun ne\'e la\'ós substitui konsulta ho pesoál saúde.',
-  'me.server':           'Servidór komunidade',
-  'me.server.hint':      'Husik mamuk hodi uza modu lokál (mensajen rai iha telefone deit).',
   'me.programme':        'Ha\'u nia programa',
   'me.programme.day':    'Loron {n} husi 180',
   'me.phase.prequit':    'Faze prepara',

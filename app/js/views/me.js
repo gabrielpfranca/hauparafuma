@@ -106,12 +106,6 @@ export default function renderMe(ctx) {
       sub: `${s.profile.cigsPerDay} / ${t('day')} · ${money(s.profile.pricePerPack)}`,
       onClick: () => ctx.navigate('/osan'),
     }));
-    settingsList.appendChild(listRow({
-      icon: '🌐',
-      title: t('me.server'),
-      sub: s.settings.apiBase || t('com.local'),
-      onClick: () => openServerSheet(ctx, paint),
-    }));
     body.appendChild(settingsList);
 
     /* ---- relapse ---- */
@@ -277,40 +271,6 @@ function openQuitDateSheet(ctx, done) {
           toast(t('ok'), 'ok');
           done();
           ctx.refresh();
-        },
-      }),
-    );
-  });
-}
-
-function openServerSheet(ctx, done) {
-  openSheet(t('me.server'), (close) => {
-    const input = el('input', {
-      type: 'text',
-      inputmode: 'url',
-      placeholder: 'https://…',
-      value: ctx.store.get().settings.apiBase,
-    });
-    return el('div', { class: 'stack' },
-      field(t('me.server'), input, t('me.server.hint')),
-      button(t('save'), {
-        variant: 'btn--block',
-        onClick: async () => {
-          const value = input.value.trim().replace(/\/+$/, '');
-          if (value && !/^https?:\/\//i.test(value)) {
-            toast(t('error'), 'warn');
-            return;
-          }
-          ctx.store.update((s) => {
-            s.settings.apiBase = value;
-          }, 'settings');
-          if (value) {
-            await ctx.community.sync();
-            ctx.notif.subscribePush(value, ctx.store.get().community.deviceId);
-          }
-          close();
-          toast(t('ok'), 'ok');
-          done();
         },
       }),
     );
