@@ -8,10 +8,15 @@
  * correction.
  *
  * Imported by the server (to serve the review list) and by the bake step.
- * No side effects — importing this must not read or write anything.
+ * No mutating side effects — importing this must not write or change anything
+ * on disk. It does read two static files (the content modules, and the English
+ * reference glosses below), the same as loading any other module.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { entries, FILES, placeholders, validate } from '../app/js/textmap.js';
 
 export { FILES, placeholders, validate };
@@ -23,6 +28,37 @@ export { FILES, placeholders, validate };
  */
 export function hash(text) {
   return createHash('sha256').update(String(text), 'utf8').digest('hex').slice(0, 12);
+}
+
+/* ------------------------------------------------------------------ */
+/* Referénsia inglés — a reading aid, not a source of truth            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A short English gloss of each Tetun string's *intended meaning*, shown next
+ * to the Tetun in the review tool. The reviewer is fluent in Tetun — this is
+ * not a translation for them to approve, it is a way to catch a string that
+ * has drifted from what it was meant to say, and to disambiguate short labels
+ * reused in more than one place ("Dada iis" as a tool title vs. as an SOS
+ * button). Keyed by the same content hash used for staleness detection, so a
+ * gloss silently stops showing (rather than showing something wrong) the
+ * moment the Tetun it was written against changes.
+ *
+ * Optional by design: with no file present every `english` field is simply
+ * null and the review tool hides that line.
+ */
+const ENGLISH_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'translation-en.json');
+
+let englishCache = null;
+function englishGlosses() {
+  if (!englishCache) {
+    try {
+      englishCache = JSON.parse(fs.readFileSync(ENGLISH_FILE, 'utf8'));
+    } catch {
+      englishCache = {};
+    }
+  }
+  return englishCache;
 }
 
 /* ------------------------------------------------------------------ */
@@ -148,17 +184,19 @@ export function extract() {
   const out = entries().map((e) => {
     const source = e.get();
     const section = sectionFor(e.id);
+    const h = hash(source);
     return {
       id: e.id,
       file: e.id.split(':')[0],
       source,
-      hash: hash(source),
+      hash: h,
       priority: section.priority,
       section: section.name,
       screen: section.screen || null,
       sectionNote: section.note || null,
       context: contextFor(e.id),
       placeholders: placeholders(source),
+      english: englishGlosses()[h] || null,
     };
   });
 

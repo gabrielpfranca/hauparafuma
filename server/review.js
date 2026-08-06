@@ -302,37 +302,54 @@ const esc = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
 
-function buildDigest(list) {
-  const base = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
-  const n = list.length;
+/**
+ * Group a slice of history into sections, keeping each entry's real index in
+ * `state.history` — that index is what the revert link and its signature are
+ * built from, so it must survive the grouping.
+ */
+function groupBySection(list, offset) {
   const bySection = new Map();
-  for (const e of list) {
-    const k = e.section || 'Seluk';
+  list.forEach((e, i) => {
+    const k = e.section || 'Other';
     if (!bySection.has(k)) bySection.set(k, []);
-    bySection.get(k).push(e);
-  }
+    bySection.get(k).push({ e, index: offset + i });
+  });
+  return [...bySection.entries()].sort();
+}
 
-  const rows = [];
-  const plain = [];
-  for (const [section, items] of [...bySection.entries()].sort()) {
-    rows.push(`<h3 style="margin:26px 0 8px;font:600 15px system-ui;color:#111">${esc(section)}</h3>`);
-    plain.push(`\n## ${section}\n`);
-    for (const e of items) {
-      const idx = state.history.indexOf(e);
-      const link = base && idx >= 0
-        ? `${base}/revizaun/fila/${idx}-${signRevert(idx)}`
-        : '';
-      rows.push(`
+/** One change, as a card. `link` is pre-built by the caller (absolute for email, relative in-app). */
+function changeCard(e, link) {
+  return `
 <div style="border:1px solid #e5e5e5;border-radius:8px;padding:12px;margin:8px 0">
   <div style="font:500 11px ui-monospace,monospace;color:#888;margin-bottom:6px">${esc(e.id)}</div>
   <div style="font:14px system-ui;color:#b00;text-decoration:line-through;margin-bottom:4px">${esc(e.from)}</div>
   <div style="font:14px system-ui;color:#060">${esc(e.to)}</div>
   ${e.note ? `<div style="font:italic 13px system-ui;color:#555;margin-top:8px;padding-left:10px;border-left:3px solid #ddd">${esc(e.note)}</div>` : ''}
   ${link ? `<div style="margin-top:10px"><a href="${link}" style="font:13px system-ui;color:#06c">↩ Undo this change</a></div>` : ''}
-</div>`);
+</div>`;
+}
+
+/** Render a group of history entries as cards, grouped by section. `linkFor` builds each revert link from its index. */
+function cardsHtml(list, offset, linkFor) {
+  return groupBySection(list, offset).map(([section, items]) => `
+<h3 style="margin:26px 0 8px;font:600 15px system-ui;color:#111">${esc(section)}</h3>
+${items.map(({ e, index }) => changeCard(e, linkFor(index))).join('')}`).join('');
+}
+
+function buildDigest(list) {
+  const base = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
+  const n = list.length;
+  const offset = state.sentUpTo;
+
+  const plain = [];
+  for (const [section, items] of groupBySection(list, offset)) {
+    plain.push(`\n## ${section}\n`);
+    for (const { e, index } of items) {
+      const link = base ? `${base}/revizaun/fila/${index}-${signRevert(index)}` : '';
       plain.push(`- ${e.id}\n  WAS: ${e.from}\n  NOW: ${e.to}${e.note ? `\n  NOTE: ${e.note}` : ''}${link ? `\n  Undo: ${link}` : ''}`);
     }
   }
+  const rows = cardsHtml(list, offset, (i) => (base ? `${base}/revizaun/fila/${i}-${signRevert(i)}` : ''));
 
   const when = new Date().toISOString().slice(0, 16).replace('T', ' ');
   return {
@@ -344,11 +361,82 @@ function buildDigest(list) {
   <strong>${n}</strong> change${n === 1 ? '' : 's'} in the last session. All of them are already live in the app.
 </p>
 <p style="font:13px system-ui;color:#888;margin:0 0 18px">${when} UTC</p>
-${rows.join('')}
+${rows}
 <p style="font:12px system-ui;color:#999;margin-top:28px;border-top:1px solid #eee;padding-top:12px">
   To make these permanent in the source: <code>npm run review:bake</code>
 </p></div>`,
   };
+}
+
+/**
+ * The in-app report — a page you bookmark instead of an inbox to check.
+ * No SMTP required: it reads the same history the email digest would have
+ * used, so switching to (or back from) email later changes nothing else.
+ */
+function reportPage(key) {
+  const qs = `?key=${encodeURIComponent(key)}`;
+  const CAP = 300;
+
+  const unseen = pending();
+  const unseenOffset = state.sentUpTo;
+  const seenAll = state.history.slice(0, state.sentUpTo);
+  const truncated = seenAll.length > CAP;
+
+  // Newest-first display means these items no longer sit at consecutive
+  // indices counting up from an offset — index each one by its real position
+  // in state.history instead of relying on the offset math cardsHtml uses for
+  // the (still-chronological) unseen list. Entries are unique object
+  // references (pushed once, never duplicated), so indexOf finds the right one.
+  const seenIndexed = seenAll.slice(-CAP).reverse()
+    .map((e) => ({ e, index: state.history.indexOf(e) }));
+  const linkFor = (i) => `/revizaun/fila/${i}-${signRevert(i)}`;
+
+  const unseenHtml = unseen.length
+    ? cardsHtml(unseen, unseenOffset, linkFor)
+    : '<p class="muted">No new changes since you last checked.</p>';
+
+  const seenHtml = seenIndexed.length
+    ? groupSectionsFromIndexed(seenIndexed, linkFor)
+    : '<p class="muted">Nothing reviewed yet.</p>';
+
+  return `<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Tetun review — report</title>
+<style>
+ body{font:16px/1.5 system-ui;max-width:40rem;margin:0 auto;padding:24px 16px 60px;color:#111;background:#fff}
+ h1{font-size:19px;margin:0 0 4px} h2{font-size:16px;margin:30px 0 10px}
+ .muted{color:#888;font-size:14px}
+ form{margin:0 0 12px}
+ button{font:inherit;padding:9px 18px;border:0;border-radius:8px;background:#111;color:#fff;cursor:pointer}
+ @media(prefers-color-scheme:dark){body{background:#111;color:#eee}button{background:#eee;color:#111}}
+</style>
+<h1>Tetun review — report</h1>
+<p class="muted">Every correction below is already live in the app. Undo any line to put the original text back.</p>
+
+<h2>New since you last checked (${unseen.length})</h2>
+${unseen.length ? `<form method="POST" action="/revizaun/relatoriu/dismiss${qs}"><button type="submit">Mark these as read</button></form>` : ''}
+${unseenHtml}
+
+<h2>Everything reviewed so far${truncated ? ` (most recent ${CAP})` : ''}</h2>
+${seenHtml}
+
+<p class="muted" style="margin-top:28px;border-top:1px solid #eee;padding-top:12px">
+  To make these permanent in the source: <code>npm run review:bake</code>
+</p>`;
+}
+
+/** Same rendering as `cardsHtml`, for a list whose items already carry their real index. */
+function groupSectionsFromIndexed(items, linkFor) {
+  const bySection = new Map();
+  for (const it of items) {
+    const k = it.e.section || 'Other';
+    if (!bySection.has(k)) bySection.set(k, []);
+    bySection.get(k).push(it);
+  }
+  return [...bySection.entries()].sort().map(([section, its]) => `
+<h3 style="margin:26px 0 8px;font:600 15px system-ui;color:#111">${esc(section)}</h3>
+${its.map(({ e, index }) => changeCard(e, linkFor(index))).join('')}`).join('');
 }
 
 /* ------------------------------------------------------------------ */
@@ -432,6 +520,24 @@ async function handle(req, url, res, send) {
       <p class="lbl">Currently live (will be removed):</p><p class="t bad">${esc(entry.to)}</p>
       <p class="lbl">Will go back to:</p><p class="t good">${esc(entry.from)}</p>
       <form method="POST"><button type="submit">Yes, undo it</button></form>`));
+    return true;
+  }
+
+  /* ---- the in-app report: bookmark this instead of waiting on an inbox ---- */
+  if (route === '/revizaun/relatoriu') {
+    if (!authed(req, url)) { html(res, 403, page('<p>Wrong key.</p>')); return true; }
+    const givenKey = req.headers['x-review-key'] || url.searchParams.get('key') || '';
+    html(res, 200, reportPage(givenKey));
+    return true;
+  }
+  if (route === '/revizaun/relatoriu/dismiss') {
+    if (!authed(req, url)) { send(res, 403, { error: 'xave_sala' }); return true; }
+    if (req.method === 'POST') {
+      state.sentUpTo = state.history.length;
+      save();
+    }
+    const givenKey = url.searchParams.get('key') || '';
+    res.writeHead(303, { location: `/revizaun/relatoriu?key=${encodeURIComponent(givenKey)}` }).end();
     return true;
   }
 
@@ -547,10 +653,11 @@ function init(dataDir) {
   load();
   if (REVIEW_KEY) {
     console.log('[revizaun] review tool available at /revizaun');
-    if (!getMailer().configured()) {
-      console.log('[revizaun] SMTP not configured — reports will be held, not lost');
+    if (getMailer().configured()) {
+      setInterval(() => { tick().catch(() => {}); }, 5 * 60 * 1000).unref();
+    } else {
+      console.log('[revizaun] no SMTP set — check /revizaun/relatoriu for the report instead of email');
     }
-    setInterval(() => { tick().catch(() => {}); }, 5 * 60 * 1000).unref();
   }
 }
 

@@ -22,26 +22,31 @@ está em **inglês** (o revisor lê inglês); o texto a rever é, claro, Tétum.
 ### Ligar a ferramenta
 
 Está **desligada por omissão** — sem `REVIEW_KEY` definida, `/revizaun` responde 404 e a
-ferramenta não existe. Para ligar, no Railway (ou onde estiver publicado):
+ferramenta não existe. Para ligar, no Railway (ou onde estiver publicado), só é preciso
+uma variável:
 
 ```bash
-REVIEW_KEY=<uma-chave-longa>            # liga /revizaun
-MAIL_TO=voce@exemplo.org                # para onde vai o relatório
-SMTP_HOST=smtp.gmail.com                # app password do Gmail serve
-SMTP_PORT=465
-SMTP_USER=voce@gmail.com
-SMTP_PASS=<app password>
-PUBLIC_URL=https://a-sua-app.up.railway.app   # para os links de anular no email
+REVIEW_KEY=<uma-chave-longa>            # liga /revizaun e /revizaun/relatoriu
 ```
 
-Depois é só enviar ao revisor o link `https://…/revizaun` e a chave.
+Depois é só enviar ao revisor o link `https://…/revizaun` e a chave. O relatório
+(`/revizaun/relatoriu`) usa a **mesma chave** — nenhuma conta de email nem palavra-passe é
+necessária. Ver a secção "O relatório" abaixo.
+
+> Email é opcional, não o caminho por omissão (ver abaixo). Se um dia quiser ligá-lo, as
+> variáveis `MAIL_TO`/`SMTP_*`/`PUBLIC_URL` continuam a existir para isso.
 
 ### O que o revisor faz
 
 Para cada frase: **Correct as is**, **Save correction**, ou **Not sure** com uma nota.
-A ferramenta mostra em que ecrã a frase aparece, uma captura desse ecrã, e tem o glossário
-abaixo sempre à mão. Grava sozinha e funciona com rede fraca — o que ficar por enviar sai
-assim que houver ligação.
+A ferramenta mostra em que ecrã a frase aparece, uma captura desse ecrã, uma **referência em
+inglês** (uma glosa curta do que a frase pretende dizer — não uma tradução a aprovar, só uma
+forma de apanhar um texto que já não diz o que devia, ou de desambiguar uma etiqueta curta
+repetida em vários sítios), e tem o glossário abaixo sempre à mão. Grava sozinha e funciona
+com rede fraca — o que ficar por enviar sai assim que houver ligação.
+
+A referência em inglês vem de `tools/translation-en.json` (chave = hash do texto em Tétum).
+Fica em branco para qualquer string sem entrada nesse ficheiro — nunca bloqueia a revisão.
 
 ### As correções entram em direto
 
@@ -52,7 +57,7 @@ e aplicadas por cima do texto de origem quando a app arranca.
 Por isso a rede de segurança está *atrás* da mudança, não à frente:
 
 - **histórico completo** de tudo o que mudou, com o valor antigo;
-- **um link de anular por alteração**, em cada linha do relatório por email;
+- **um link de anular por alteração**, em cada linha do relatório;
 - **validação no servidor** — um `{n}` perdido, HTML, ou texto vazio são recusados na hora
   (o que a validação **nunca** faz é julgar o Tétum: isso é o trabalho do revisor);
 - a **ordem de revisão** põe o texto clínico à frente, para que a parte com custo real seja
@@ -60,10 +65,21 @@ Por isso a rede de segurança está *atrás* da mudança, não à frente:
 
 ### O relatório
 
-No fim de cada sessão (30 minutos sem novas edições, ou 24 h no máximo), sai um email com
-tudo o que mudou, agrupado por secção: antes, depois, as notas do revisor, e o link para
-anular cada uma. Se o SMTP não estiver configurado ou falhar, o relatório **fica pendente e
-vai na tentativa seguinte** — não se perde.
+Não é preciso email nem SMTP. Abra `https://…/revizaun/relatoriu?key=<a-mesma-REVIEW_KEY>`
+sempre que quiser ver o que mudou — a mesma chave de `/revizaun` serve para isto. A página
+mostra:
+
+- **"New since you last checked"** — o que mudou desde a última vez que abriu esta página,
+  com um botão para marcar como lido depois de ler;
+- **"Everything reviewed so far"** — o histórico completo, mais recente primeiro;
+- em cada linha: o id, antes → depois, a nota do revisor (se houver), e um **link de
+  anular** — abre uma página de confirmação, reverter é um clique.
+
+Vale a pena guardar esse link nos marcadores do telemóvel. Se preferir mesmo assim receber
+por email, isso continua possível: definir `MAIL_TO`, `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USER`, `SMTP_PASS` e `PUBLIC_URL` liga o envio automático (30 minutos sem novas
+edições, ou 24h no máximo) com o mesmo conteúdo. Sem essas variáveis, nada é enviado e nada
+se perde — fica tudo na página do relatório.
 
 ### Gravar as correções no código
 

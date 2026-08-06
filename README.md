@@ -142,9 +142,8 @@ Variáveis de ambiente:
 | `DATA_DIR` | onde fica o feed — **use um volume** | `server/data` |
 | `APP_DIR` | onde estão os ficheiros da app | `app/` |
 | `VAPID_*` | Web Push (opcional) | desligado |
-| `REVIEW_KEY` | liga a ferramenta de revisão de tradução em `/revizaun` | **desligada** (404) |
-| `MAIL_TO`, `SMTP_*` | para onde vai o relatório de alterações | sem relatório |
-| `PUBLIC_URL` | URL público, para os links de anular no email | sem links |
+| `REVIEW_KEY` | liga a ferramenta de revisão de tradução em `/revizaun` e o relatório em `/revizaun/relatoriu` | **desligada** (404) |
+| `MAIL_TO`, `SMTP_*`, `PUBLIC_URL` | opcional: envia o relatório por email em vez de (ou além de) o ver em `/revizaun/relatoriu` | sem email — o relatório fica só na página |
 
 ---
 

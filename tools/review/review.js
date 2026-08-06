@@ -170,6 +170,14 @@ function renderCard() {
 
   $('source').textContent = unit.source;
 
+  const eref = $('english-ref');
+  if (unit.english) {
+    eref.hidden = false;
+    eref.textContent = `English: ${unit.english}`;
+  } else {
+    eref.hidden = true;
+  }
+
   const shot = $('shot-wrap');
   if (unit.screen) {
     shot.hidden = false;
