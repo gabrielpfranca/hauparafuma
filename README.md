@@ -17,8 +17,9 @@ Duas ressalvas que não devem passar despercebidas:
 
 1. **O Tétum ainda não foi revisto por um falante nativo.** Foi escrito com cuidado, mas
    não validado. Como a app é só em Tétum, não há segunda língua a servir de rede de
-   segurança. Ver **[`docs/translation-review.md`](docs/translation-review.md)** — tem o
-   glossário, as decisões em aberto e a checklist de aceitação.
+   segurança. Existe agora uma **ferramenta de revisão** para um falante nativo corrigir
+   a app a partir do telemóvel, sem tocar em código — ver
+   **[`docs/translation-review.md`](docs/translation-review.md)**.
 2. **Os textos das mensagens são autorais, não são as mensagens oficiais da OMS.** Os PDFs
    do handbook estavam inacessíveis (HTTP 403) durante o desenvolvimento, por isso foi
    reproduzida a *estrutura* documentada do programa, não o seu conteúdo. Ver
@@ -98,9 +99,10 @@ VAPID_PUBLIC=… VAPID_PRIVATE=… VAPID_SUBJECT=mailto:voce@exemplo.org npm sta
 
 ```bash
 npm test            # 57 testes unitários das camadas puras
+npm run test:i18n   # 15 asserções sobre a revisão de tradução (endereçamento, overlay, bake)
 npm run test:smoke  # 79 asserções ponta-a-ponta num Chromium em tamanho de telemóvel
 npm run test:origin # 10 asserções na topologia de produção (uma só origem)
-npm run test:all    # os três
+npm run test:all    # os quatro
 ```
 
 O smoke test percorre o registo, o painel, a conversa, a comunidade real **entre dois
@@ -110,6 +112,12 @@ português ou inglês aparecer na interface. Guarda capturas em `tests/screens/`
 `test:origin` cobre o que se publica de facto: app e API na mesma origem, comunidade a
 funcionar **sem ninguém abrir as definições**, e a garantia de que o limite de pedidos da
 API não trava o carregamento da app.
+
+`test:i18n` protege a revisão de tradução: que cada string tem um endereço estável, que
+uma correção chega mesmo ao ecrã, que um `{n}` perdido é recusado, e que gravar as
+correções no código não mexe em mais nada. Inclui uma verificação que **falha se aparecer
+texto visível fora de `i18n.js` e `content/`** — foi assim que a lista de serviços de
+saúde quase escapou à revisão.
 
 ---
 
@@ -134,6 +142,9 @@ Variáveis de ambiente:
 | `DATA_DIR` | onde fica o feed — **use um volume** | `server/data` |
 | `APP_DIR` | onde estão os ficheiros da app | `app/` |
 | `VAPID_*` | Web Push (opcional) | desligado |
+| `REVIEW_KEY` | liga a ferramenta de revisão de tradução em `/revizaun` | **desligada** (404) |
+| `MAIL_TO`, `SMTP_*` | para onde vai o relatório de alterações | sem relatório |
+| `PUBLIC_URL` | URL público, para os links de anular no email | sem links |
 
 ---
 
@@ -147,8 +158,14 @@ app/                  PWA (HTML/CSS/ES modules, sem build)
   js/game.js          minigame de memória                                ← puro
   js/tracking.js      dinheiro, saúde, streak, medalhas
   js/views/           17 ecrãs (só DOM)
+  js/textmap.js       endereço estável de cada string revisível          ← puro
+  js/overrides.js     aplica o Tétum revisto por cima do texto de origem
 server/server.js      feed partilhado + push — zero dependências
+server/review.js      ferramenta de revisão: rotas, validação, histórico
+server/mailer.js      SMTP mínimo para o relatório — zero dependências
 tools/                servidor estático de dev, gerador de ícones
+tools/review/         página do revisor (fora de `app/`, não entra na PWA)
+tools/translation*    extrator e consolidação das correções no código
 tests/                unitários + smoke Playwright
 docs/                 alinhamento OMS, revisão de tradução, arquitetura
 ```

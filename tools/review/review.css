@@ -1,0 +1,153 @@
+/* Revizaun tradusaun — reviewer's tool.
+ *
+ * Built for a phone in Timor-Leste: large tap targets, high contrast, no
+ * webfonts (every byte is paid for on mobile data), works in light and dark.
+ * Deliberately not sharing app/css/app.css — this tool is not part of the
+ * product and must never end up in the PWA's cache.
+ */
+
+:root {
+  --bg: #fff;
+  --fg: #14181c;
+  --muted: #667;
+  --line: #e3e6ea;
+  --card: #fff;
+  --brand: #1565c0;
+  --ok: #2e7d32;
+  --warn: #b71c1c;
+  --src: #f3f5f7;
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14181c; --fg: #e8eaed; --muted: #9aa3ad; --line: #2a3138;
+    --card: #1b2127; --brand: #6ba6f0; --ok: #7bc47f; --warn: #ef9a9a;
+    --src: #232a31;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* Author `display` rules beat the UA stylesheet's `[hidden]`, so anything with
+   a display of its own would stay on screen when hidden. Restate it once here
+   rather than remembering to guard every rule below. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-text-size-adjust: 100%;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.err { color: var(--warn); font-size: 14px; margin: 6px 0 0; }
+
+/* ---- xave ---- */
+.gate { display: grid; place-items: center; min-height: 100dvh; padding: 24px; }
+.gate__box { width: 100%; max-width: 22rem; text-align: center; }
+.gate__box h1 { font-size: 22px; margin: 0 0 4px; }
+.gate__box input {
+  width: 100%; padding: 14px; margin: 18px 0 10px; font: inherit;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--card); color: var(--fg);
+}
+
+/* ---- topu ---- */
+.top {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  padding: 10px 14px 8px;
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+.top__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.top__title { font-size: 15px; }
+.bar { height: 5px; background: var(--line); border-radius: 3px; margin: 8px 0 6px; overflow: hidden; }
+.bar__fill { height: 100%; width: 0; background: var(--ok); transition: width .25s; }
+.sync { font-size: 12px; }
+.sync--wait { color: var(--brand); }
+.sync--err { color: var(--warn); }
+
+/* ---- kartaun ---- */
+main { max-width: 40rem; margin: 0 auto; padding: 14px 14px 40px; }
+
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px;
+}
+.card__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+
+.pill {
+  font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+  background: var(--src); color: var(--muted);
+}
+.pill--1 { background: #fdecec; color: #b71c1c; }
+.pill--2 { background: #fff4e5; color: #9a5b00; }
+@media (prefers-color-scheme: dark) {
+  .pill--1 { background: #3a1c1c; color: #ef9a9a; }
+  .pill--2 { background: #3a2c14; color: #f0c98a; }
+}
+
+.context { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.note { font-size: 13px; border-radius: 8px; padding: 9px 11px; margin: 0 0 10px; }
+.note--warn { background: #fff4e5; color: #8a4b00; }
+@media (prefers-color-scheme: dark) { .note--warn { background: #3a2c14; color: #f0c98a; } }
+
+.label { font-size: 12px; font-weight: 600; color: var(--muted); margin: 14px 0 5px; text-transform: uppercase; letter-spacing: .04em; }
+
+.source {
+  background: var(--src); border-radius: 8px; padding: 12px;
+  white-space: pre-wrap; word-break: break-word;
+}
+
+textarea {
+  width: 100%; padding: 12px; font: inherit; resize: vertical;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); color: var(--fg);
+}
+textarea:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.shot { margin: 12px 0 0; }
+.shot summary { cursor: pointer; font-size: 14px; color: var(--brand); }
+.shot img { width: 100%; max-width: 300px; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; display: block; }
+
+/* ---- butaun ---- */
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.actions--nav { justify-content: space-between; align-items: center; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+
+.btn {
+  font: inherit; padding: 12px 16px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--card); color: var(--fg);
+  cursor: pointer; min-height: 46px;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.btn--sm { padding: 7px 12px; min-height: 0; font-size: 14px; }
+.btn--primary { background: var(--brand); border-color: var(--brand); color: #fff; flex: 1; }
+.btn--ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn--ghost { background: transparent; }
+
+/* ---- navegasaun ---- */
+.jump { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.jump select {
+  flex: 1; min-width: 12rem; padding: 10px; font: inherit;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); color: var(--fg);
+}
+.check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+
+/* ---- glosáriu ---- */
+.sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .45); }
+.sheet__inner {
+  position: absolute; inset: auto 0 0 0; max-height: 82dvh; overflow: auto;
+  background: var(--bg); border-radius: 16px 16px 0 0; padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+.sheet__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.sheet table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 14px; }
+.sheet th { text-align: left; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); padding: 4px 6px; }
+.sheet td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.sheet h4 { margin: 16px 0 0; font-size: 14px; }

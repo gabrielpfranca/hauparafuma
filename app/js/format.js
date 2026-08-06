@@ -7,7 +7,12 @@
  * Tetun word order puts the unit before the numeral ("loron 3", not "3 loron"),
  * and Tetun does not mark plurals on the noun, so "loron 1" and "loron 20" both
  * use the bare noun. That is why we do not do English-style pluralisation here.
+ *
+ * The words themselves come from js/i18n.js — see `unit.*` and `ago.*` — so the
+ * translation review reaches them. Only the arithmetic lives here.
  */
+
+import { t } from './i18n.js';
 
 export const MS = {
   second: 1000,
@@ -17,14 +22,14 @@ export const MS = {
   week: 7 * 24 * 60 * 60 * 1000,
 };
 
-export const MONTHS_TET = [
-  'Janeiru', 'Fevereiru', 'Marsu', 'Abríl', 'Maiu', 'Juñu',
-  'Jullu', 'Agostu', 'Setembru', 'Outubru', 'Novembru', 'Dezembru',
-];
-
-export const WEEKDAYS_TET = [
-  'Domingu', 'Segunda', 'Tersa', 'Kuarta', 'Kinta', 'Sesta', 'Sábadu',
-];
+/**
+ * Month and weekday names live in js/i18n.js like every other visible word, so
+ * a reviewed correction reaches them too. Read through a function rather than
+ * captured into an array at module load, or an overlay applied at boot would
+ * never be seen here.
+ */
+export const monthName = (i) => t(`month.${i}`);
+export const weekdayName = (i) => t(`weekday.${i}`);
 
 /** Split a millisecond span into whole d/h/m/s parts. */
 export function splitDuration(ms) {
@@ -44,10 +49,10 @@ export function splitDuration(ms) {
 export function duration(ms) {
   const { days, hours, minutes, seconds } = splitDuration(ms);
   const parts = [];
-  if (days) parts.push(`loron ${days}`);
-  if (hours) parts.push(`oras ${hours}`);
-  if (!days && minutes) parts.push(`minutu ${minutes}`);
-  if (!days && !hours && !minutes) parts.push(`segundu ${seconds}`);
+  if (days) parts.push(t('unit.day', { n: days }));
+  if (hours) parts.push(t('unit.hour', { n: hours }));
+  if (!days && minutes) parts.push(t('unit.minute', { n: minutes }));
+  if (!days && !hours && !minutes) parts.push(t('unit.second', { n: seconds }));
   return parts.slice(0, 2).join(', ');
 }
 
@@ -57,14 +62,15 @@ export function durationShort(ms) {
   if (days >= 365) {
     const years = Math.floor(days / 365);
     const restMonths = Math.floor((days % 365) / 30);
-    return restMonths ? `tinan ${years}, fulan ${restMonths}` : `tinan ${years}`;
+    const y = t('unit.year', { n: years });
+    return restMonths ? `${y}, ${t('unit.month', { n: restMonths })}` : y;
   }
-  if (days >= 60) return `fulan ${Math.floor(days / 30)}`;
-  if (days >= 14) return `semana ${Math.floor(days / 7)}`;
-  if (days) return `loron ${days}`;
-  if (hours) return `oras ${hours}`;
-  if (minutes) return `minutu ${minutes}`;
-  return `segundu ${seconds}`;
+  if (days >= 60) return t('unit.month', { n: Math.floor(days / 30) });
+  if (days >= 14) return t('unit.week', { n: Math.floor(days / 7) });
+  if (days) return t('unit.day', { n: days });
+  if (hours) return t('unit.hour', { n: hours });
+  if (minutes) return t('unit.minute', { n: minutes });
+  return t('unit.second', { n: seconds });
 }
 
 /** mm:ss for timers and the minigame clock. */
@@ -94,14 +100,14 @@ export function num(n) {
 export function date(input) {
   const d = input instanceof Date ? input : new Date(input);
   if (Number.isNaN(d.getTime())) return '—';
-  return `${d.getDate()} ${MONTHS_TET[d.getMonth()]} ${d.getFullYear()}`;
+  return `${d.getDate()} ${monthName(d.getMonth())} ${d.getFullYear()}`;
 }
 
 /** "Kuarta, 15 Marsu" */
 export function dateWithWeekday(input) {
   const d = input instanceof Date ? input : new Date(input);
   if (Number.isNaN(d.getTime())) return '—';
-  return `${WEEKDAYS_TET[d.getDay()]}, ${d.getDate()} ${MONTHS_TET[d.getMonth()]}`;
+  return `${weekdayName(d.getDay())}, ${d.getDate()} ${monthName(d.getMonth())}`;
 }
 
 /** "14:05" — 24h, which is how times are written in Timor-Leste. */
@@ -116,11 +122,11 @@ export function ago(input, now = Date.now()) {
   const ts = input instanceof Date ? input.getTime() : Number(input);
   if (!Number.isFinite(ts)) return '—';
   const diff = now - ts;
-  if (diff < MS.minute) return 'oras ne\'e';
-  if (diff < MS.hour) return `minutu ${Math.floor(diff / MS.minute)} liu ba`;
-  if (diff < MS.day) return `oras ${Math.floor(diff / MS.hour)} liu ba`;
-  if (diff < 2 * MS.day) return 'horiseik';
-  if (diff < MS.week) return `loron ${Math.floor(diff / MS.day)} liu ba`;
+  if (diff < MS.minute) return t('ago.now');
+  if (diff < MS.hour) return t('ago.minutes', { n: Math.floor(diff / MS.minute) });
+  if (diff < MS.day) return t('ago.hours', { n: Math.floor(diff / MS.hour) });
+  if (diff < 2 * MS.day) return t('ago.yesterday');
+  if (diff < MS.week) return t('ago.days', { n: Math.floor(diff / MS.day) });
   return date(ts);
 }
 

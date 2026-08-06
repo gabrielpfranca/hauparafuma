@@ -13,20 +13,27 @@ import { el, clear, button, chip, empty, toast } from '../ui.js';
 import { time, dateWithWeekday, isoDate } from '../format.js';
 import { actionLabel } from './home.js';
 
-/** Quick-reply chips: id -> the text sent on tap. */
+/**
+ * Quick-reply chips: id -> { label on the button, message sent on tap }.
+ *
+ * Both are i18n keys. They are deliberately different strings: the chip is a
+ * button ("Sin, ha'u la fuma") while what gets sent is the person speaking
+ * ("Lae, ha'u la fuma"). Keeping both in js/i18n.js means the translation
+ * review sees each one with its own context instead of only the button.
+ */
 const QUICK = {
-  crave:   { label: 'msg.quick.crave',  text: 'Hakarak fuma' },
-  smoked:  { label: 'msg.quick.smoked', text: 'Ha\'u fuma tiha' },
-  good:    { label: 'msg.quick.good',   text: 'Ha\'u sente di\'ak' },
-  help:    { label: 'msg.quick.help',   text: 'Tulun ha\'u' },
-  money:   { label: 'msg.quick.money',  text: 'Osan' },
-  health:  { label: 'msg.quick.health', text: 'Saúde' },
-  game:    { label: 'tools.game',       text: 'Jogu' },
-  breathe: { label: 'tools.breathe',    text: 'Dada iis' },
-  won:     { label: 'sos.won',          text: 'Ha\'u manán ona' },
-  clean:   { label: 'home.checkin.yes', text: 'Lae, ha\'u la fuma' },
-  restart: { label: 'me.relapse.restart', text: 'Hahú konta foun' },
-  keep:    { label: 'me.relapse.keep',  text: 'Kontinua konta' },
+  crave:   { label: 'msg.quick.crave',    send: 'msg.send.crave' },
+  smoked:  { label: 'msg.quick.smoked',   send: 'msg.send.smoked' },
+  good:    { label: 'msg.quick.good',     send: 'msg.send.good' },
+  help:    { label: 'msg.quick.help',     send: 'msg.send.help' },
+  money:   { label: 'msg.quick.money',    send: 'msg.send.money' },
+  health:  { label: 'msg.quick.health',   send: 'msg.send.health' },
+  game:    { label: 'tools.game',         send: 'msg.send.game' },
+  breathe: { label: 'tools.breathe',      send: 'msg.send.breathe' },
+  won:     { label: 'sos.won',            send: 'msg.send.won' },
+  clean:   { label: 'home.checkin.yes',   send: 'msg.send.clean' },
+  restart: { label: 'me.relapse.restart', send: 'msg.send.restart' },
+  keep:    { label: 'me.relapse.keep',    send: 'msg.send.keep' },
 };
 
 const KIND_LABEL = {
@@ -84,7 +91,7 @@ export default function renderMessages(ctx) {
       const def = QUICK[id];
       if (!def) continue;
       quickHost.appendChild(chip(t(def.label), {
-        onClick: () => submit(def.text, lastIn && lastIn.assessDay ? lastIn.assessDay : null),
+        onClick: () => submit(t(def.send), lastIn && lastIn.assessDay ? lastIn.assessDay : null),
       }));
     }
 

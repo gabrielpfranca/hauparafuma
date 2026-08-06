@@ -2,8 +2,10 @@
 
 > **ESTADO: POR REVER.**
 > Toda a app está em Tétum, mas **nenhuma string foi validada por um falante nativo**.
-> Este documento é o instrumento dessa revisão. Enquanto não estiver feita, a app **não
-> deve ser usada com pessoas reais**.
+> Enquanto não estiver feita, a app **não deve ser usada com pessoas reais**.
+>
+> A revisão faz-se na ferramenta web (`/revizaun`), não editando ficheiros — ver abaixo.
+> Este documento é o glossário e a checklist que a acompanham.
 
 Não há segunda língua na interface por decisão de produto (Tétum apenas), o que significa
 que **não existe rede de segurança**: um erro de tradução não é apanhado por comparação
@@ -13,27 +15,99 @@ com outro idioma. Daí a importância desta revisão.
 
 ## Como fazer a revisão
 
-Todo o texto visível ao utilizador está em **sete ficheiros**. Não é preciso ler código.
+O revisor **não precisa de abrir código**. Há uma ferramenta web: abre um link no
+telemóvel, vê uma frase de cada vez com o ecrã onde ela aparece, e corrige. A interface
+está em **inglês** (o revisor lê inglês); o texto a rever é, claro, Tétum.
 
-| Ficheiro | O que contém | Volume |
-|---|---|---|
-| `app/js/i18n.js` | toda a interface: botões, títulos, etiquetas, erros | ~430 strings |
-| `app/js/content/messages.js` | mensagens do programa de 6 meses | ~145 textos |
-| `app/js/content/quotes.js` | frases motivacionais | 40 |
-| `app/js/content/coping.js` | motivos, gatilhos, sintomas de abstinência | ~90 |
-| `app/js/content/milestones.js` | marcos de recuperação da saúde | 13 |
-| `app/js/content/fagerstrom.js` | perguntas do teste de dependência | 6 + opções |
-| `app/js/content/rewards.js` | metas de poupança | 14 |
-| `app/js/content/badges.js` | conquistas e textos de partilha | 16 |
+### Ligar a ferramenta
 
-Para ver as strings em contexto, no ecrã: `npm start` e abrir <http://localhost:8080>.
+Está **desligada por omissão** — sem `REVIEW_KEY` definida, `/revizaun` responde 404 e a
+ferramenta não existe. Para ligar, no Railway (ou onde estiver publicado):
+
+```bash
+REVIEW_KEY=<uma-chave-longa>            # liga /revizaun
+MAIL_TO=voce@exemplo.org                # para onde vai o relatório
+SMTP_HOST=smtp.gmail.com                # app password do Gmail serve
+SMTP_PORT=465
+SMTP_USER=voce@gmail.com
+SMTP_PASS=<app password>
+PUBLIC_URL=https://a-sua-app.up.railway.app   # para os links de anular no email
+```
+
+Depois é só enviar ao revisor o link `https://…/revizaun` e a chave.
+
+### O que o revisor faz
+
+Para cada frase: **Correct as is**, **Save correction**, ou **Not sure** com uma nota.
+A ferramenta mostra em que ecrã a frase aparece, uma captura desse ecrã, e tem o glossário
+abaixo sempre à mão. Grava sozinha e funciona com rede fraca — o que ficar por enviar sai
+assim que houver ligação.
+
+### As correções entram em direto
+
+Uma correção gravada fica visível na app **de imediato**, sem redeploy. Não há passo de
+aprovação: as correções vivem como dados (`DATA_DIR/review.json`), servidas em `/api/text`
+e aplicadas por cima do texto de origem quando a app arranca.
+
+Por isso a rede de segurança está *atrás* da mudança, não à frente:
+
+- **histórico completo** de tudo o que mudou, com o valor antigo;
+- **um link de anular por alteração**, em cada linha do relatório por email;
+- **validação no servidor** — um `{n}` perdido, HTML, ou texto vazio são recusados na hora
+  (o que a validação **nunca** faz é julgar o Tétum: isso é o trabalho do revisor);
+- a **ordem de revisão** põe o texto clínico à frente, para que a parte com custo real seja
+  revista primeiro, mesmo que a revisão pare a meio.
+
+### O relatório
+
+No fim de cada sessão (30 minutos sem novas edições, ou 24 h no máximo), sai um email com
+tudo o que mudou, agrupado por secção: antes, depois, as notas do revisor, e o link para
+anular cada uma. Se o SMTP não estiver configurado ou falhar, o relatório **fica pendente e
+vai na tentativa seguinte** — não se perde.
+
+### Gravar as correções no código
+
+O overlay é runtime; o git é que é permanente. Quando quiser consolidar:
+
+```bash
+npm run review:pull    # mostra o que mudaria, não escreve nada (--dry)
+npm run review:bake    # escreve as correções nos ficheiros .js
+```
+
+Não é um portão de aprovação — as correções já estão em direto há muito. É consolidação, e
+é deliberadamente paranóica: recusa correções cujo texto original tenha mudado entretanto,
+volta a extrair tudo e compara (as alteradas com o texto novo, **todas as outras
+byte-a-byte iguais**), corre `npm test`, e ao mínimo desvio **restaura tudo e aborta**.
+
+### Onde está o texto
+
+Todo o texto visível está em **nove ficheiros**, e há um teste (`npm run test:i18n`) que
+falha se aparecer texto fora deles.
+
+| Ficheiro | O que contém |
+|---|---|
+| `app/js/i18n.js` | toda a interface: botões, títulos, etiquetas, erros, datas, respostas automáticas |
+| `app/js/content/messages.js` | mensagens do programa de 6 meses |
+| `app/js/content/services.js` | **serviços de saúde** — o texto de maior risco da app |
+| `app/js/content/coping.js` | motivos, gatilhos, sintomas de abstinência |
+| `app/js/content/milestones.js` | marcos de recuperação da saúde |
+| `app/js/content/quotes.js` | frases motivacionais |
+| `app/js/content/fagerstrom.js` | perguntas do teste de dependência |
+| `app/js/content/rewards.js` | metas de poupança |
+| `app/js/content/badges.js` | conquistas e textos de partilha |
+
+São **798 strings**. As palavras-chave de *entrada* em `programme.js` (`KEYWORDS`) ficam de
+fora de propósito: são padrões de correspondência, incluindo termos em português e inglês,
+e editá-las como se fosse texto partiria a deteção de intenção.
 
 ### O que verificar, por ordem de importância
 
-1. **Segurança e clareza clínica** — as mensagens sobre recaída, abstinência e
-   encaminhamento para o Sentru Saúde Komunidade. Um mal-entendido aqui tem custo real.
-2. **Tom.** O programa deve soar como um apoiante, nunca como um julgador. Verificar
-   sobretudo `RELAPSE_POOL` em `messages.js`: nenhuma linha pode envergonhar.
+A ferramenta já apresenta as frases nesta ordem.
+
+1. **Segurança e clareza clínica** — serviços de saúde, abstinência, recaída, SOS, os
+   marcos de saúde. Um mal-entendido aqui tem custo real.
+2. **Tom.** O programa deve soar como um apoiante, nunca como um julgador. Nenhuma linha
+   sobre recaída pode envergonhar.
 3. **Registo e tratamento.** A app trata o utilizador por **`ita`** (cortês) em todo o
    lado, nunca por `ó`. Confirmar que é a escolha certa e que é consistente.
 4. **Ortografia INL.** Grafia do Instituto Nacional de Linguística: apóstrofo para a
@@ -41,21 +115,7 @@ Para ver as strings em contexto, no ecrã: `npm start` e abrir <http://localhost
 5. **Naturalidade.** Marcar tudo o que soe a tradução literal do português. Preferir a
    forma que uma pessoa em Díli usaria a falar.
 6. **Empréstimos.** Há vários empréstimos do português (`sigarru`, `pulmaun`, `saúde`,
-   `parabéns`, `motivu`). Confirmar quais são de facto correntes e quais devem ser
-   substituídos por termos tétum.
-
-### Como registar as correções
-
-Editar diretamente os ficheiros acima — são texto simples, uma string por linha. Depois:
-
-```bash
-npm test          # confirma que nada estrutural quebrou
-npm run test:smoke   # confirma que a app continua a funcionar
-```
-
-Os testes verificam **estrutura**, não gramática: comprimento mínimo das mensagens,
-ausência de chaves de tradução em falta, ausência de números de telefone e de marcas de
-tabaco no conteúdo.
+   `parabéns`, `motivu`). Confirmar quais são de facto correntes.
 
 ---
 

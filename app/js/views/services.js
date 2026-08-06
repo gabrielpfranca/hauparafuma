@@ -12,31 +12,8 @@
  */
 
 import { t } from '../i18n.js';
+import { FACILITIES } from '../content/services.js';
 import { el, clear, card, button, callout, empty, toast, openSheet, field, confirmSheet } from '../ui.js';
-
-/** Facilities that exist nationally; no phone numbers asserted. */
-const FACILITIES = [
-  {
-    icon: '🏥',
-    name: 'Sentru Saúde Komunidade (CSC)',
-    note: 'Iha kada munisípiu no postu administrativu. Servisu gratis. Husu ba apoiu para fuma.',
-  },
-  {
-    icon: '🏨',
-    name: 'Ospitál Nasionál Guido Valadares (Dili)',
-    note: 'Ba kazu ne\'ebé presiza tratamentu espesializadu.',
-  },
-  {
-    icon: '🏩',
-    name: 'Ospitál Referénsia munisípiu nian',
-    note: 'Baucau, Maliana, Maubisse, Oecusse, Suai.',
-  },
-  {
-    icon: '🩺',
-    name: 'Postu Saúde no ajente saúde iha suku',
-    note: 'Bele fó konsellu no hatudu dalan ba servisu boot liu.',
-  },
-];
 
 export default function renderServices(ctx) {
   const root = el('div', { class: 'screen' });
