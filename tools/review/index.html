@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Tetun review — Hau Para Fuma</title>
+<link rel="stylesheet" href="/revizaun/review.css">
+</head>
+<body>
+
+<!-- Key -->
+<div id="gate" class="gate">
+  <div class="gate__box">
+    <h1>Tetun review</h1>
+    <p class="muted">Enter the access key to start.</p>
+    <input id="key" type="password" autocomplete="current-password" placeholder="Access key">
+    <button id="enter" class="btn btn--primary">Start</button>
+    <p id="gate-err" class="err" hidden>That key was not accepted. Try again.</p>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" hidden>
+
+  <header class="top">
+    <div class="top__row">
+      <strong class="top__title">Tetun review</strong>
+      <button id="glossary-btn" class="btn btn--ghost btn--sm">Glossary</button>
+    </div>
+    <div class="bar"><div id="bar-fill" class="bar__fill"></div></div>
+    <div class="top__row muted small">
+      <span id="progress">—</span>
+      <span id="sync" class="sync"></span>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="card" class="card">
+      <div class="card__meta">
+        <span id="pri" class="pill"></span>
+        <span id="section" class="muted small"></span>
+      </div>
+      <p id="context" class="context" hidden></p>
+      <p id="section-note" class="note note--warn" hidden></p>
+
+      <div class="label">Current text in the app</div>
+      <div id="source" class="source"></div>
+
+      <details id="shot-wrap" class="shot" hidden>
+        <summary>Show me this screen</summary>
+        <img id="shot" alt="Screenshot of the screen this text appears on" loading="lazy">
+      </details>
+
+      <div class="label">Your correction</div>
+      <textarea id="input" rows="4" spellcheck="false"></textarea>
+      <p id="ph-warn" class="err" hidden></p>
+
+      <div class="label">Note or question <span class="muted">(optional)</span></div>
+      <textarea id="note" rows="2" placeholder="e.g. nobody says this in Dili…"></textarea>
+
+      <div class="actions">
+        <button id="ok" class="btn btn--ok">✓ Correct as is</button>
+        <button id="save" class="btn btn--primary">Save correction</button>
+        <button id="ask" class="btn btn--ghost">? Not sure</button>
+      </div>
+      <div class="actions actions--nav">
+        <button id="prev" class="btn btn--ghost btn--sm">‹ Back</button>
+        <span id="counter" class="muted small"></span>
+        <button id="next" class="btn btn--ghost btn--sm">Skip ›</button>
+      </div>
+    </section>
+
+    <nav class="jump">
+      <label for="filter" class="muted small">Go to:</label>
+      <select id="filter"></select>
+      <label class="check"><input type="checkbox" id="only-todo" checked> Only unreviewed</label>
+    </nav>
+
+    <p class="muted small foot">
+      Saved corrections go live in the app straight away. Everything is logged and
+      can be undone.
+    </p>
+  </main>
+
+  <!-- Glossary -->
+  <aside id="glossary" class="sheet" hidden>
+    <div class="sheet__inner">
+      <div class="sheet__head">
+        <strong>Glossary</strong>
+        <button id="glossary-close" class="btn btn--ghost btn--sm">Close</button>
+      </div>
+      <p class="muted small">The terms the app uses. Worth checking these are consistent.</p>
+      <div id="glossary-body"></div>
+    </div>
+  </aside>
+
+</div>
+
+<script src="/revizaun/review.js" type="module"></script>
+</body>
+</html>

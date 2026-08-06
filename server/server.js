@@ -28,6 +28,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const review = require('./review.js');
 
 const PORT = Number(process.env.PORT || 8080);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -352,6 +353,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
+    /* ---- translation review (off unless REVIEW_KEY is set) ----
+       Also the moment we check whether a review session has gone quiet: this
+       container may sleep for hours between requests, so a timer alone is not
+       enough to get the report out. */
+    review.tick().catch(() => {});
+    if (await review.handle(req, url, res, send)) return;
+
     /* ---- health ---- */
     if (req.method === 'GET' && route === '/api/health') {
       send(res, 200, { ok: true, posts: db.posts.length, push: Boolean(webpush) });
@@ -578,6 +586,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 readDB();
+review.init(DATA_DIR);
 server.listen(PORT, HOST, () => {
   console.log(`[server] Hau Para Fuma iha http://${HOST}:${PORT}`);
   console.log(`[server] aplikasaun: ${APP_DIR}`);

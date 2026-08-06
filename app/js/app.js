@@ -10,6 +10,7 @@ import * as notif from './notifications.js';
 import * as community from './community.js';
 import * as programme from './programme.js';
 import * as tracking from './tracking.js';
+import * as overrides from './overrides.js';
 import { t } from './i18n.js';
 import { el, clear, toast, openSheet, closeSheet, button, multiline } from './ui.js';
 import { WELCOME } from './content/messages.js';
@@ -538,6 +539,10 @@ async function boot() {
   store.load();
   applyTheme();
 
+  // Reviewed Tetun, from a previous run. Synchronous and before the first
+  // render, so no screen is ever painted with text we already know is wrong.
+  overrides.applyCached();
+
   // Expose formatters for the reply builder without creating an import cycle.
   const fmt = await import('./format.js');
   window.__hpfFormat = fmt;
@@ -563,6 +568,12 @@ async function boot() {
     // Now that a server is known, push can be subscribed.
     armNotifications();
     refresh();
+  });
+
+  // Pick up any text the reviewer corrected since this phone last connected.
+  // Repaint only when something actually changed.
+  overrides.refresh().then((changed) => {
+    if (changed) refresh();
   });
 
   window.addEventListener('hashchange', render);

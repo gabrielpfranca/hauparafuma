@@ -16,6 +16,7 @@ import {
   COPING_POOL, RELAPSE_POOL, GRADUATE, explicitFor,
 } from './content/messages.js';
 import { daysBetween, MS } from './format.js';
+import { t } from './i18n.js';
 
 export const LAST_DAY = 180;
 
@@ -286,7 +287,7 @@ export function replyTo(text, ctx = {}) {
     case 'help':
       return {
         type: 'coping',
-        text: 'Ha\'u iha ne\'e. Hili buat ida: dada iis, halimar jogu, ka lee ita nia motivu. Se ita presiza tulun médiku, ba Sentru Saúde Komunidade.',
+        text: t('reply.help'),
         action: 'sos',
         quick: ['crave', 'breathe', 'game'],
       };
@@ -295,8 +296,8 @@ export function replyTo(text, ctx = {}) {
       return {
         type: 'reward',
         text: ctx.saved !== undefined
-          ? `Ita salva ona ${ctx.saved}, no la fuma sigarru ${ctx.notSmoked}. Loke kalkuladora atu haree meta sira.`
-          : 'Loke kalkuladora osan atu haree hira ita salva ona.',
+          ? t('reply.money', { saved: ctx.saved, count: ctx.notSmoked })
+          : t('reply.money.none'),
         action: 'money',
       };
 
@@ -304,35 +305,37 @@ export function replyTo(text, ctx = {}) {
       return {
         type: 'benefit',
         text: ctx.smokeFreeText
-          ? `Ita la fuma ona ${ctx.smokeFreeText}.${ctx.nextMilestone ? ` Benefísiu tuir mai: ${ctx.nextMilestone}.` : ''}`
-          : 'Loke ekrán saúde atu haree benefísiu ne\'ebé ita hetan ona.',
+          ? (ctx.nextMilestone
+            ? t('reply.health.next', { time: ctx.smokeFreeText, next: ctx.nextMilestone })
+            : t('reply.health', { time: ctx.smokeFreeText }))
+          : t('reply.health.none'),
         action: 'health',
       };
 
     case 'game':
-      return { type: 'coping', text: 'Di\'ak! Halimar minutu 3. Hakarak fuma sei tun bainhira ita hotu.', action: 'game' };
+      return { type: 'coping', text: t('reply.game'), action: 'game' };
 
     case 'breathe':
-      return { type: 'coping', text: 'Tuir bola ne\'e: dada iis 4, hein 4, soe 6. Dala 6 deit.', action: 'breathe' };
+      return { type: 'coping', text: t('reply.breathe'), action: 'breathe' };
 
     case 'good':
       return {
         type: 'motivation',
-        text: 'Ha\'u kontente rona ida ne\'e! Fahe ba komunidade — ema seluk presiza rona katak bele duni.',
+        text: t('reply.good'),
         action: 'community',
       };
 
     case 'stop':
       return {
         type: 'service',
-        text: 'Se ita hakarak hapara notifikasaun, loke "Ha\'u" > Notifikasaun no taka. Aplikasaun ne\'e sei nafatin iha ne\'e bainhira ita presiza.',
+        text: t('reply.stop'),
         action: 'me',
       };
 
     default:
       return {
         type: 'coping',
-        text: 'Obrigadu ba ita nia mensajen. Ha\'u komprende liafuan hanesan: HAKARAK (bainhira hakarak fuma), FUMA (se ita fuma tiha), OSAN, SAÚDE, JOGU, TULUN.',
+        text: t('reply.default'),
         quick: ['crave', 'help', 'money', 'health'],
       };
   }

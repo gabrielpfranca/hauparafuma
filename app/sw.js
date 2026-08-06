@@ -6,7 +6,7 @@
  * precached and served cache-first; only the community API goes to the network.
  */
 
-const VERSION = 'hpf-v1';
+const VERSION = 'hpf-v2';
 const SHELL = `${VERSION}-shell`;
 
 const PRECACHE = [
@@ -23,7 +23,11 @@ const PRECACHE = [
   'js/community.js',
   'js/game.js',
   'js/ui.js',
+  'js/tracking.js',
+  'js/textmap.js',
+  'js/overrides.js',
   'js/content/messages.js',
+  'js/content/services.js',
   'js/content/milestones.js',
   'js/content/quotes.js',
   'js/content/coping.js',

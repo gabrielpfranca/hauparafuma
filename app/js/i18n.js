@@ -409,6 +409,76 @@ const STR = {
   'notif.denied':        'Notifikasaun taka. Loke fali iha konfigurasaun telefone nian.',
   'notif.unsupported':   'Telefone ne\'e la suporta notifikasaun. Ita sei simu mensajen sira iha aplikasaun laran.',
   'notif.enabled':       'Notifikasaun loke ona.',
+
+  /* ---------------- kalendáriu ----------------
+     Used by js/format.js. Kept here so every visible word is reviewable in
+     one place — see docs/translation-review.md. */
+  'month.0':             'Janeiru',
+  'month.1':             'Fevereiru',
+  'month.2':             'Marsu',
+  'month.3':             'Abríl',
+  'month.4':             'Maiu',
+  'month.5':             'Juñu',
+  'month.6':             'Jullu',
+  'month.7':             'Agostu',
+  'month.8':             'Setembru',
+  'month.9':             'Outubru',
+  'month.10':            'Novembru',
+  'month.11':            'Dezembru',
+  'weekday.0':           'Domingu',
+  'weekday.1':           'Segunda',
+  'weekday.2':           'Tersa',
+  'weekday.3':           'Kuarta',
+  'weekday.4':           'Kinta',
+  'weekday.5':           'Sesta',
+  'weekday.6':           'Sábadu',
+
+  /* ---------------- tempu ----------------
+     `{n}` is the number. Tetun puts the numeral after the noun, so the word
+     order here is part of what needs checking. */
+  'unit.year':           'tinan {n}',
+  'unit.month':          'fulan {n}',
+  'unit.week':           'semana {n}',
+  'unit.day':            'loron {n}',
+  'unit.hour':           'oras {n}',
+  'unit.minute':         'minutu {n}',
+  'unit.second':         'segundu {n}',
+  'ago.now':             'oras ne\'e',
+  'ago.yesterday':       'horiseik',
+  'ago.minutes':         'minutu {n} liu ba',
+  'ago.hours':           'oras {n} liu ba',
+  'ago.days':            'loron {n} liu ba',
+
+  /* ---------------- mensajen ne'ebé ita haruka ----------------
+     What gets sent as the person's own message when they tap a quick-reply
+     chip. Deliberately separate from the chip's label: the chip is a button
+     ("Sin, ha'u la fuma"), this is the person speaking. */
+  'msg.send.crave':      'Hakarak fuma',
+  'msg.send.smoked':     'Ha\'u fuma tiha',
+  'msg.send.good':       'Ha\'u sente di\'ak',
+  'msg.send.help':       'Tulun ha\'u',
+  'msg.send.money':      'Osan',
+  'msg.send.health':     'Saúde',
+  'msg.send.game':       'Jogu',
+  'msg.send.breathe':    'Dada iis',
+  'msg.send.won':        'Ha\'u manán ona',
+  'msg.send.clean':      'Lae, ha\'u la fuma',
+  'msg.send.restart':    'Hahú konta foun',
+  'msg.send.keep':       'Kontinua konta',
+
+  /* ---------------- resposta automátika ----------------
+     The programme's replies to a free-text message (js/programme.js). */
+  'reply.help':          'Ha\'u iha ne\'e. Hili buat ida: dada iis, halimar jogu, ka lee ita nia motivu. Se ita presiza tulun médiku, ba Sentru Saúde Komunidade.',
+  'reply.money':         'Ita salva ona {saved}, no la fuma sigarru {count}. Loke kalkuladora atu haree meta sira.',
+  'reply.money.none':    'Loke kalkuladora osan atu haree hira ita salva ona.',
+  'reply.health':        'Ita la fuma ona {time}.',
+  'reply.health.next':   'Ita la fuma ona {time}. Benefísiu tuir mai: {next}.',
+  'reply.health.none':   'Loke ekrán saúde atu haree benefísiu ne\'ebé ita hetan ona.',
+  'reply.game':          'Di\'ak! Halimar minutu 3. Hakarak fuma sei tun bainhira ita hotu.',
+  'reply.breathe':       'Tuir bola ne\'e: dada iis 4, hein 4, soe 6. Dala 6 deit.',
+  'reply.good':          'Ha\'u kontente rona ida ne\'e! Fahe ba komunidade — ema seluk presiza rona katak bele duni.',
+  'reply.stop':          'Se ita hakarak hapara notifikasaun, loke "Ha\'u" > Notifikasaun no taka. Aplikasaun ne\'e sei nafatin iha ne\'e bainhira ita presiza.',
+  'reply.default':       'Obrigadu ba ita nia mensajen. Ha\'u komprende liafuan hanesan: HAKARAK (bainhira hakarak fuma), FUMA (se ita fuma tiha), OSAN, SAÚDE, JOGU, TULUN.',
 };
 
 /**
@@ -436,4 +506,25 @@ export function allKeys() {
 /** Raw table access for the review tooling in docs/. */
 export function rawStrings() {
   return { ...STR };
+}
+
+/**
+ * Overlay reviewed text on top of the built-in table.
+ *
+ * `t()` reads STR at call time, so assigning here reaches every screen without
+ * any view having to re-import or re-subscribe. Only keys that already exist
+ * are accepted: a stale or malformed overlay can blank the interface, and a
+ * silent no-op is far better than a screen of missing text.
+ *
+ * Returns the number of strings actually applied.
+ */
+export function setStrings(partial) {
+  let n = 0;
+  for (const [key, value] of Object.entries(partial || {})) {
+    if (!(key in STR)) continue;
+    if (typeof value !== 'string' || !value) continue;
+    STR[key] = value;
+    n++;
+  }
+  return n;
 }

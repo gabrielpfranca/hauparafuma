@@ -16,7 +16,10 @@
     "test": "node --test tests/unit.mjs",
     "test:smoke": "node tests/smoke.mjs",
     "test:origin": "node tests/single-origin.mjs",
-    "test:all": "npm test && npm run test:smoke && npm run test:origin"
+    "test:all": "npm test && npm run test:i18n && npm run test:smoke && npm run test:origin",
+    "test:i18n": "node --test tests/translation.mjs",
+    "review:bake": "node tools/translation-bake.mjs",
+    "review:pull": "node tools/translation-bake.mjs --dry"
   },
   "keywords": [
     "tetum",
