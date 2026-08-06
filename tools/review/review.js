@@ -1,16 +1,21 @@
 /**
  * TETUN REVIEW — the reviewer's tool.
  *
- * One person, not a programmer, checking ~800 strings from a phone. The
- * interface is English because the reviewer reads English; the text being
- * reviewed is of course Tetun. Everything here follows from that:
+ * One person, not a programmer, checking ~800 strings at a desk. The interface
+ * is English because the reviewer reads English; the text being reviewed is of
+ * course Tetun. Everything here follows from that:
  *
- *  - ONE STRING AT A TIME, in priority order, so stopping half way still means
- *    the clinical text got reviewed.
+ *  - THE WHOLE LIST IS ON SCREEN. Every line of the app is in the left pane, one
+ *    row each, and the editor sits beside it — not below it. Picking the next
+ *    string is a click, never a scroll, and the panes scroll independently so
+ *    the typing box never leaves the window.
+ *  - WHAT HE TYPED IS WHAT HE SEES. Once a string is corrected, the correction
+ *    IS the text of that string — in the list, in the editor, and in the app.
+ *    The original moves into a fold underneath, available but out of the way.
+ *    Nothing he has written is ever silently replaced by the old text.
  *  - NEVER LOSE AN EDIT. Every decision goes to localStorage before it goes to
  *    the network, and the queue drains in the background. An afternoon's work
- *    must survive a dropped connection, which on mobile data in Timor-Leste is
- *    normal.
+ *    must survive a dropped connection.
  *  - GUARD THE PLACEHOLDERS. `{n}` disappearing is the one way a well-meaning
  *    correction breaks the app, so it is blocked in the UI as well as on the
  *    server.
@@ -26,8 +31,9 @@ const $ = (id) => document.getElementById(id);
 
 let units = [];
 let state = { text: {}, status: {}, notes: {} };
-let view = [];          // the filtered, ordered list being worked through
-let pos = 0;
+let view = [];              // the filtered list currently in the left pane
+let rows = new Map();       // id -> <li>, so one edit repaints one row
+let pos = -1;               // index into `view`, -1 = nothing selected
 let queue = [];
 let flushing = false;
 
@@ -95,8 +101,11 @@ async function flush() {
       setSync('err', `${rejected.length} rejected`);
       // The server is the authority: drop our optimistic copy so the reviewer
       // sees the real text rather than an edit that never landed.
-      for (const r of rejected) delete state.text[r.id];
-      renderCard();
+      for (const r of rejected) {
+        delete state.text[r.id];
+        updateRow(r.id);
+      }
+      renderEditor();
     } else {
       setSync('', queue.length ? `${queue.length} left to send` : 'Saved ✓');
     }
@@ -141,22 +150,92 @@ function checkPlaceholders() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Render                                                              */
+/* Estadu de kada linha                                                */
 /* ------------------------------------------------------------------ */
 
+/** The text as it stands now: his correction if he made one, else the app's. */
 function current(unit) {
   return state.text[unit.id] !== undefined ? state.text[unit.id] : unit.source;
 }
 
+const edited = (unit) => state.text[unit.id] !== undefined && state.text[unit.id] !== unit.source;
 const reviewed = (unit) => Boolean(state.status[unit.id]);
 
-function renderCard() {
-  const unit = view[pos];
-  if (!unit) {
-    $('card').innerHTML = '<p><strong>Nothing left in this section.</strong></p>'
-      + '<p class="muted">Pick another section below, or untick "Only unreviewed".</p>';
-    return;
+const MARK = { ok: '✓', changed: '✎', question: '?' };
+
+/* ------------------------------------------------------------------ */
+/* Lista                                                               */
+/* ------------------------------------------------------------------ */
+
+function rowClass(unit) {
+  const status = state.status[unit.id];
+  return `row row--p${unit.priority}${status ? ` row--${status}` : ''}`;
+}
+
+function renderList() {
+  const list = $('list');
+  list.textContent = '';
+  rows = new Map();
+
+  const frag = document.createDocumentFragment();
+  for (const [i, unit] of view.entries()) {
+    const li = document.createElement('li');
+    li.className = rowClass(unit);
+    li.dataset.i = String(i);
+
+    const mark = document.createElement('span');
+    mark.className = 'row__mark';
+    mark.textContent = MARK[state.status[unit.id]] || '·';
+
+    const text = document.createElement('span');
+    text.className = 'row__text';
+    text.textContent = current(unit);
+
+    const sec = document.createElement('span');
+    sec.className = 'row__sec';
+    sec.textContent = unit.section;
+
+    li.append(mark, text, sec);
+    rows.set(unit.id, li);
+    frag.appendChild(li);
   }
+  list.appendChild(frag);
+
+  $('list-empty').hidden = view.length > 0;
+  $('count').textContent = `${view.length} line${view.length === 1 ? '' : 's'}`;
+}
+
+/** Repaint one row in place — used after an edit, so the list never reshuffles. */
+function updateRow(id) {
+  const li = rows.get(id);
+  if (!li) return;
+  const unit = view[Number(li.dataset.i)];
+  if (!unit) return;
+  li.className = `${rowClass(unit)}${Number(li.dataset.i) === pos ? ' is-sel' : ''}`;
+  li.querySelector('.row__mark').textContent = MARK[state.status[unit.id]] || '·';
+  li.querySelector('.row__text').textContent = current(unit);
+}
+
+function highlight() {
+  for (const li of rows.values()) li.classList.remove('is-sel');
+  const unit = view[pos];
+  if (!unit) return;
+  const li = rows.get(unit.id);
+  if (li) {
+    li.classList.add('is-sel');
+    li.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Editór                                                              */
+/* ------------------------------------------------------------------ */
+
+function renderEditor() {
+  const unit = view[pos];
+  $('editor').hidden = !unit;
+  $('no-sel').hidden = Boolean(unit);
+  if (!unit) return;
 
   $('pri').textContent = unit.priorityLabel;
   $('pri').className = `pill pill--${unit.priority}`;
@@ -168,7 +247,13 @@ function renderCard() {
   $('section-note').hidden = !unit.sectionNote;
   $('section-note').textContent = unit.sectionNote || '';
 
-  $('source').textContent = unit.source;
+  // The headline text is the LIVE text — his correction once he has made one.
+  // Going back to a string he has already fixed must show what he wrote, not
+  // the original he replaced.
+  const isEdited = edited(unit);
+  $('current').textContent = current(unit);
+  $('current').className = `source${isEdited ? ' source--live' : ''}`;
+  $('current-label').textContent = isEdited ? 'Your text — live in the app' : 'Text in the app';
 
   const eref = $('english-ref');
   if (unit.english) {
@@ -178,9 +263,16 @@ function renderCard() {
     eref.hidden = true;
   }
 
+  // The original only earns space on screen once it is no longer what is live.
+  const fold = $('orig-wrap');
+  fold.hidden = !isEdited;
+  fold.open = false;
+  $('orig').textContent = unit.source;
+
   const shot = $('shot-wrap');
   if (unit.screen) {
     shot.hidden = false;
+    shot.open = false;
     $('shot').src = `/revizaun/screens/${unit.screen}?key=${encodeURIComponent(key())}`;
   } else {
     shot.hidden = true;
@@ -190,8 +282,18 @@ function renderCard() {
   $('input').value = current(unit);
   $('note').value = state.notes[unit.id] || '';
   $('counter').textContent = `${pos + 1} / ${view.length}`;
+  $('saved-hint').hidden = true;
+  $('prev').disabled = pos <= 0;
+  $('next').disabled = pos >= view.length - 1;
   checkPlaceholders();
-  window.scrollTo(0, 0);
+  $('editor').parentElement.scrollTop = 0;
+}
+
+function select(i) {
+  if (i < 0 || i >= view.length) return;
+  pos = i;
+  highlight();
+  renderEditor();
 }
 
 function paintProgress() {
@@ -203,21 +305,59 @@ function paintProgress() {
 function applyFilter() {
   const want = $('filter').value;
   const todoOnly = $('only-todo').checked;
-  view = units.filter((u) => (want === '*' || u.section === want) && (!todoOnly || !reviewed(u)));
-  pos = 0;
-  renderCard();
+  const q = $('search').value.trim().toLowerCase();
+
+  const keep = units.filter((u) => {
+    if (want !== '*' && u.section !== want) return false;
+    if (todoOnly && reviewed(u)) return false;
+    if (!q) return true;
+    return current(u).toLowerCase().includes(q)
+      || u.source.toLowerCase().includes(q)
+      || (u.english || '').toLowerCase().includes(q);
+  });
+
+  // Keep the reviewer on the string they were looking at if it survived the
+  // new filter; losing your place in a 798-line list is infuriating.
+  const wasOn = view[pos] ? view[pos].id : null;
+  view = keep;
+  renderList();
+  const again = wasOn ? view.findIndex((u) => u.id === wasOn) : -1;
+  pos = again >= 0 ? again : (view.length ? 0 : -1);
+  highlight();
+  renderEditor();
 }
 
-function advance() {
-  if (pos < view.length - 1) {
-    pos++;
-  } else if ($('only-todo').checked) {
-    // In to-do mode the string just handled drops out of the list, so rebuild
-    // rather than walking off the end.
-    applyFilter();
+/* ------------------------------------------------------------------ */
+/* Asaun                                                               */
+/* ------------------------------------------------------------------ */
+
+function submit() {
+  const unit = view[pos];
+  if (!unit || !checkPlaceholders()) return;
+  const text = $('input').value.trim();
+  if (!text) return;
+
+  const note = $('note').value.trim();
+  if (text === current(unit)) {
+    // Nothing changed about the text — but a note still deserves recording.
+    if (note && note !== (state.notes[unit.id] || '')) {
+      enqueue({ id: unit.id, action: 'ok', note });
+      updateRow(unit.id);
+    }
+    flash('No change to the text — it is already what you see.');
     return;
   }
-  renderCard();
+
+  enqueue({ id: unit.id, action: 'change', text, note });
+  updateRow(unit.id);
+  renderEditor();
+  flash('Saved — this is live in the app now.');
+}
+
+function flash(msg) {
+  const el = $('saved-hint');
+  el.textContent = msg;
+  el.hidden = false;
 }
 
 /* ------------------------------------------------------------------ */
@@ -269,13 +409,13 @@ function buildGlossary() {
     + '<code>k</code> rather than <code>c</code>.';
   host.appendChild(rules);
 
-  for (const [title, rows] of GLOSSARY) {
+  for (const [title, list] of GLOSSARY) {
     const h = document.createElement('h4');
     h.textContent = title;
     host.appendChild(h);
     const table = document.createElement('table');
     table.innerHTML = '<tr><th>Tetun</th><th>English</th><th>Note</th></tr>'
-      + rows.map(([a, b, c]) => `<tr><td>${a}</td><td>${b}</td><td class="muted">${c}</td></tr>`).join('');
+      + list.map(([a, b, c]) => `<tr><td>${a}</td><td>${b}</td><td class="muted">${c}</td></tr>`).join('');
     host.appendChild(table);
   }
 }
@@ -322,23 +462,36 @@ function wire() {
   });
   $('key').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('enter').click(); });
 
+  // One listener for 798 rows.
+  $('list').addEventListener('click', (e) => {
+    const li = e.target.closest('.row');
+    if (li) select(Number(li.dataset.i));
+  });
+
   $('input').addEventListener('input', checkPlaceholders);
+  // At a keyboard, submitting without reaching for the mouse is the difference
+  // between 798 strings being tedious and being unbearable.
+  $('input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); }
+  });
+
+  $('save').addEventListener('click', submit);
+
+  $('restore').addEventListener('click', (e) => {
+    e.preventDefault();
+    const unit = view[pos];
+    if (!unit) return;
+    $('input').value = unit.source;
+    $('input').focus();
+    checkPlaceholders();
+  });
 
   $('ok').addEventListener('click', () => {
     const unit = view[pos];
     if (!unit) return;
     enqueue({ id: unit.id, action: 'ok', note: $('note').value.trim() });
-    advance();
-  });
-
-  $('save').addEventListener('click', () => {
-    const unit = view[pos];
-    if (!unit || !checkPlaceholders()) return;
-    const text = $('input').value.trim();
-    if (!text) return;
-    if (text === current(unit)) { advance(); return; }
-    enqueue({ id: unit.id, action: 'change', text, note: $('note').value.trim() });
-    advance();
+    updateRow(unit.id);
+    flash('Marked as correct.');
   });
 
   $('ask').addEventListener('click', () => {
@@ -347,13 +500,20 @@ function wire() {
     const note = $('note').value.trim();
     if (!note) { $('note').focus(); return; }
     enqueue({ id: unit.id, action: 'question', note });
-    advance();
+    updateRow(unit.id);
+    flash('Flagged with your question.');
   });
 
-  $('prev').addEventListener('click', () => { if (pos > 0) { pos--; renderCard(); } });
-  $('next').addEventListener('click', advance);
+  $('prev').addEventListener('click', () => select(pos - 1));
+  $('next').addEventListener('click', () => select(pos + 1));
+
   $('filter').addEventListener('change', applyFilter);
   $('only-todo').addEventListener('change', applyFilter);
+  let searchTimer = 0;
+  $('search').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(applyFilter, 150);
+  });
 
   $('glossary-btn').addEventListener('click', () => { $('glossary').hidden = false; });
   $('glossary-close').addEventListener('click', () => { $('glossary').hidden = true; });

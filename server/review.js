@@ -181,7 +181,11 @@ async function applyOne({ id, action, text, note }, u) {
     return { id, ok: true, unchanged: true };
   }
 
-  state.text[id] = proposed;
+  // Typing the app's own text back is how the reviewer undoes themselves. Drop
+  // the overlay entry rather than storing a correction that corrects nothing,
+  // so /api/text and the bake step only ever carry real differences.
+  if (proposed === unit.source) delete state.text[id];
+  else state.text[id] = proposed;
   state.status[id] = 'changed';
   if (note !== undefined) state.notes[id] = String(note).slice(0, 1000);
   state.history.push({
