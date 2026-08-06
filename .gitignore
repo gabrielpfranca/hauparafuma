@@ -5,8 +5,10 @@ node_modules/
 # Community server data (JSON store created at runtime)
 server/data*/
 
-# Smoke-test output
-tests/screens/
+# tests/screens/ is intentionally NOT ignored: the smoke test writes it, but the
+# review tool (server/review.js) also serves these images as context for the
+# reviewer, so they need to ship with the deployed app. Re-run `npm run
+# test:smoke` and commit the result after any UI change that affects a screen.
 
 # Logs and editor noise
 *.log

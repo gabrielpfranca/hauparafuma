@@ -133,6 +133,44 @@ test('the hash changes when the source text changes', () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* Referénsia inglés — reading aid for the reviewer, never authoritative */
+/* ------------------------------------------------------------------ */
+
+test('every unit carries an english field: a string when glossed, null otherwise', () => {
+  for (const u of extract()) {
+    assert.ok(u.english === null || (typeof u.english === 'string' && u.english.length > 0),
+      `${u.id} has an unexpected english value: ${JSON.stringify(u.english)}`);
+  }
+});
+
+test('an english gloss is looked up by content hash, not id — and a missing file is not fatal', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpf-en-'));
+  try {
+    for (const rel of ['app', 'tools']) {
+      fs.cpSync(path.join(ROOT, rel), path.join(dir, rel), { recursive: true });
+    }
+    // Delete whatever real glosses ship in the repo, so this test is not at the
+    // mercy of their content — it plants its own and checks the wiring only.
+    fs.rmSync(path.join(dir, 'tools', 'translation-en.json'), { force: true });
+
+    const probe = (extraFile) => execFileSync('node', ['--input-type=module', '-e', `
+      import { extract } from ${JSON.stringify(path.join(dir, 'tools', 'translation.mjs'))};
+      const u = extract().find((x) => x.id === 'i18n:ok');
+      process.stdout.write(JSON.stringify(u.english));
+    `], { cwd: dir, encoding: 'utf8' });
+
+    assert.equal(probe(), 'null', 'no translation-en.json at all must not crash extract()');
+
+    const target = extract().find((u) => u.id === 'i18n:ok');
+    fs.writeFileSync(path.join(dir, 'tools', 'translation-en.json'),
+      JSON.stringify({ [target.hash]: 'OK' }));
+    assert.equal(probe(), '"OK"', 'a gloss keyed by the right content hash must surface');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/* ------------------------------------------------------------------ */
 /* Bake — on a copy of the tree, never the repository                  */
 /* ------------------------------------------------------------------ */
 
