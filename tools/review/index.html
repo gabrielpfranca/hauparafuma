@@ -22,68 +22,89 @@
 </div>
 
 <!-- App -->
-<div id="app" hidden>
+<div id="app" class="app" hidden>
 
   <header class="top">
-    <div class="top__row">
-      <strong class="top__title">Tetun review</strong>
-      <button id="glossary-btn" class="btn btn--ghost btn--sm">Glossary</button>
+    <strong class="top__title">Tetun review</strong>
+    <div class="bar" title="How much of the app has been reviewed">
+      <div id="bar-fill" class="bar__fill"></div>
     </div>
-    <div class="bar"><div id="bar-fill" class="bar__fill"></div></div>
-    <div class="top__row muted small">
-      <span id="progress">—</span>
-      <span id="sync" class="sync"></span>
-    </div>
+    <span id="progress" class="muted small">—</span>
+    <span id="sync" class="sync"></span>
+    <button id="glossary-btn" class="btn btn--ghost btn--sm">Glossary</button>
   </header>
 
-  <main id="main">
-    <section id="card" class="card">
-      <div class="card__meta">
-        <span id="pri" class="pill"></span>
-        <span id="section" class="muted small"></span>
+  <div class="panes">
+
+    <!-- Left: every line in the app -->
+    <section class="list-pane">
+      <div class="list-tools">
+        <select id="filter" aria-label="Section"></select>
+        <input id="search" type="search" placeholder="Search the text…" aria-label="Search">
+        <label class="check"><input type="checkbox" id="only-todo"> Only unreviewed</label>
+        <span id="count" class="muted small"></span>
       </div>
-      <p id="context" class="context" hidden></p>
-      <p id="section-note" class="note note--warn" hidden></p>
-
-      <div class="label">Current text in the app</div>
-      <div id="source" class="source"></div>
-      <p id="english-ref" class="english-ref" hidden></p>
-
-      <details id="shot-wrap" class="shot" hidden>
-        <summary>Show me this screen</summary>
-        <img id="shot" alt="Screenshot of the screen this text appears on" loading="lazy">
-      </details>
-
-      <div class="label">Your correction</div>
-      <textarea id="input" rows="4" spellcheck="false"></textarea>
-      <p id="ph-warn" class="err" hidden></p>
-
-      <div class="label">Note or question <span class="muted">(optional)</span></div>
-      <textarea id="note" rows="2" placeholder="e.g. nobody says this in Dili…"></textarea>
-
-      <div class="actions">
-        <button id="ok" class="btn btn--ok">✓ Correct as is</button>
-        <button id="save" class="btn btn--primary">Save correction</button>
-        <button id="ask" class="btn btn--ghost">? Not sure</button>
-      </div>
-      <div class="actions actions--nav">
-        <button id="prev" class="btn btn--ghost btn--sm">‹ Back</button>
-        <span id="counter" class="muted small"></span>
-        <button id="next" class="btn btn--ghost btn--sm">Skip ›</button>
-      </div>
+      <ol id="list" class="list"></ol>
+      <p id="list-empty" class="list-empty muted small" hidden>Nothing matches.</p>
     </section>
 
-    <nav class="jump">
-      <label for="filter" class="muted small">Go to:</label>
-      <select id="filter"></select>
-      <label class="check"><input type="checkbox" id="only-todo" checked> Only unreviewed</label>
-    </nav>
+    <!-- Right: the one being worked on -->
+    <section class="edit-pane">
 
-    <p class="muted small foot">
-      Saved corrections go live in the app straight away. Everything is logged and
-      can be undone.
-    </p>
-  </main>
+      <div id="editor" hidden>
+        <div class="card__meta">
+          <span id="pri" class="pill"></span>
+          <span id="section" class="muted small"></span>
+        </div>
+        <p id="context" class="context" hidden></p>
+        <p id="section-note" class="note note--warn" hidden></p>
+
+        <div class="label"><span id="current-label">Text in the app</span></div>
+        <div id="current" class="source"></div>
+        <p id="english-ref" class="english-ref" hidden></p>
+
+        <div class="label">Your correction</div>
+        <textarea id="input" rows="5" spellcheck="false"></textarea>
+        <p id="ph-warn" class="err" hidden></p>
+
+        <button id="save" class="btn btn--primary btn--block">Submit</button>
+        <p id="saved-hint" class="saved-hint" hidden></p>
+
+        <details id="orig-wrap" class="fold" hidden>
+          <summary>Show the original, before your edit</summary>
+          <div id="orig" class="source source--orig"></div>
+          <button id="restore" class="btn btn--ghost btn--sm">Put this back in the box</button>
+        </details>
+
+        <details id="shot-wrap" class="fold" hidden>
+          <summary>Show me this screen</summary>
+          <img id="shot" alt="Screenshot of the screen this text appears on" loading="lazy">
+        </details>
+
+        <div class="label">Note or question <span class="muted">(optional)</span></div>
+        <textarea id="note" rows="2" placeholder="e.g. nobody says this in Dili…"></textarea>
+
+        <div class="actions">
+          <button id="ok" class="btn btn--ok">✓ Correct as is</button>
+          <button id="ask" class="btn btn--ghost">? Not sure</button>
+        </div>
+
+        <div class="actions actions--nav">
+          <button id="prev" class="btn btn--ghost btn--sm">‹ Previous</button>
+          <span id="counter" class="muted small"></span>
+          <button id="next" class="btn btn--ghost btn--sm">Next ›</button>
+        </div>
+
+        <p class="muted small foot">
+          Submitting puts the text into the app straight away. Everything is
+          logged and can be undone.
+        </p>
+      </div>
+
+      <p id="no-sel" class="muted empty-hint">Pick a line on the left to start.</p>
+
+    </section>
+  </div>
 
   <!-- Glossary -->
   <aside id="glossary" class="sheet" hidden>

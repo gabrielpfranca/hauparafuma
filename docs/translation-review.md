@@ -38,12 +38,26 @@ necessária. Ver a secção "O relatório" abaixo.
 
 ### O que o revisor faz
 
-Para cada frase: **Correct as is**, **Save correction**, ou **Not sure** com uma nota.
-A ferramenta mostra em que ecrã a frase aparece, uma captura desse ecrã, uma **referência em
-inglês** (uma glosa curta do que a frase pretende dizer — não uma tradução a aprovar, só uma
-forma de apanhar um texto que já não diz o que devia, ou de desambiguar uma etiqueta curta
-repetida em vários sítios), e tem o glossário abaixo sempre à mão. Grava sozinha e funciona
-com rede fraca — o que ficar por enviar sai assim que houver ligação.
+A ferramenta está pensada para **computador**: a janela divide-se em duas. À esquerda (2/3)
+a lista de todas as ~800 frases, uma por linha — pesquisável, filtrável por secção, com a
+marca do que já foi visto. À direita (1/3) a frase escolhida, a referência em inglês, a
+caixa de texto e um botão grande **Submit**. Os dois lados rolam em separado, por isso a
+caixa de escrita nunca sai do ecrã e escolher a frase seguinte é um clique, não um scroll.
+(Abaixo de 900px empilha-se e comporta-se como uma página normal, para telemóvel.)
+
+Para cada frase: **Submit** (a correção), **Correct as is**, ou **Not sure** com uma nota.
+`Ctrl`/`Cmd`+`Enter` submete sem tirar as mãos do teclado.
+
+**O que ele escreveu passa a ser o texto da frase** — no editor, na lista à esquerda e na
+app. O original recolhe para uma gaveta *"Show the original, before your edit"*, com um
+botão para o trazer de volta à caixa se quiser desfazer. Voltar a uma frase já corrigida
+mostra sempre a versão dele, nunca a antiga.
+
+A ferramenta mostra ainda em que ecrã a frase aparece, uma captura desse ecrã, uma
+**referência em inglês** (uma glosa curta do que a frase pretende dizer — não uma tradução a
+aprovar, só uma forma de apanhar um texto que já não diz o que devia, ou de desambiguar uma
+etiqueta curta repetida em vários sítios), e tem o glossário sempre à mão. Grava sozinha e
+funciona com rede fraca — o que ficar por enviar sai assim que houver ligação.
 
 A referência em inglês vem de `tools/translation-en.json` (chave = hash do texto em Tétum).
 Fica em branco para qualquer string sem entrada nesse ficheiro — nunca bloqueia a revisão.

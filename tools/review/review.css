@@ -1,7 +1,11 @@
 /* Revizaun tradusaun — reviewer's tool.
  *
- * Built for a phone in Timor-Leste: large tap targets, high contrast, no
- * webfonts (every byte is paid for on mobile data), works in light and dark.
+ * Laid out for a desktop: the whole app fills the window and the two panes
+ * scroll independently, so working through 798 lines never means scrolling the
+ * page to reach the box you type in. Below 900px it stacks into a single
+ * column and behaves like an ordinary page, which is what a phone gets.
+ *
+ * No webfonts (every byte is paid for on mobile data), light and dark.
  * Deliberately not sharing app/css/app.css — this tool is not part of the
  * product and must never end up in the PWA's cache.
  */
@@ -13,8 +17,10 @@
   --line: #e3e6ea;
   --card: #fff;
   --brand: #1565c0;
+  --brand-soft: #e8f0fb;
   --ok: #2e7d32;
   --warn: #b71c1c;
+  --amber: #9a5b00;
   --src: #f3f5f7;
   --radius: 12px;
 }
@@ -22,8 +28,8 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #14181c; --fg: #e8eaed; --muted: #9aa3ad; --line: #2a3138;
-    --card: #1b2127; --brand: #6ba6f0; --ok: #7bc47f; --warn: #ef9a9a;
-    --src: #232a31;
+    --card: #1b2127; --brand: #6ba6f0; --brand-soft: #1d2a3a; --ok: #7bc47f;
+    --warn: #ef9a9a; --amber: #f0c98a; --src: #232a31;
   }
 }
 
@@ -33,6 +39,8 @@
    a display of its own would stay on screen when hidden. Restate it once here
    rather than remembering to guard every rule below. */
 [hidden] { display: none !important; }
+
+html, body { height: 100%; }
 
 body {
   margin: 0;
@@ -56,28 +64,82 @@ body {
   background: var(--card); color: var(--fg);
 }
 
-/* ---- topu ---- */
+/* ---- estrutura ---- */
+.app { display: grid; grid-template-rows: auto 1fr; height: 100dvh; }
+
 .top {
-  position: sticky; top: 0; z-index: 5;
-  background: var(--bg); border-bottom: 1px solid var(--line);
-  padding: 10px 14px 8px;
-  padding-top: max(10px, env(safe-area-inset-top));
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--line);
 }
-.top__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.top__title { font-size: 15px; }
-.bar { height: 5px; background: var(--line); border-radius: 3px; margin: 8px 0 6px; overflow: hidden; }
+.top__title { font-size: 15px; white-space: nowrap; }
+.bar { flex: 1; max-width: 22rem; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
 .bar__fill { height: 100%; width: 0; background: var(--ok); transition: width .25s; }
-.sync { font-size: 12px; }
+.sync { font-size: 12px; margin-left: auto; }
 .sync--wait { color: var(--brand); }
 .sync--err { color: var(--warn); }
 
-/* ---- kartaun ---- */
-main { max-width: 40rem; margin: 0 auto; padding: 14px 14px 40px; }
+/* `min-height: 0` is what actually lets the children scroll instead of
+   stretching the grid past the window. */
+.panes { display: grid; grid-template-columns: 2fr 1fr; min-height: 0; }
 
-.card {
-  background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 16px;
+/* ---- lista ---- */
+.list-pane {
+  display: grid; grid-template-rows: auto 1fr; min-height: 0;
+  border-right: 1px solid var(--line);
 }
+
+.list-tools {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 12px; border-bottom: 1px solid var(--line);
+}
+.list-tools select, .list-tools input[type="search"] {
+  padding: 7px 9px; font: inherit; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); color: var(--fg);
+}
+.list-tools select { max-width: 16rem; }
+.list-tools input[type="search"] { flex: 1; min-width: 8rem; }
+.check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+.list { margin: 0; padding: 0; list-style: none; overflow-y: auto; min-height: 0; }
+
+.row {
+  display: flex; align-items: baseline; gap: 9px;
+  padding: 4px 12px 4px 9px;
+  font-size: 13px; line-height: 1.45;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+.row:hover { background: var(--src); }
+.row.is-sel { background: var(--brand-soft); }
+.row.is-sel .row__text { font-weight: 600; }
+
+/* Clinical text is the highest-stakes thing here; worth seeing at a glance
+   which lines those are while scrolling. */
+.row--p1 { border-left-color: #d9534f; }
+.row--p2 { border-left-color: #e0a24a; }
+
+.row__mark { flex: none; width: 1.1em; text-align: center; font-size: 12px; color: var(--muted); }
+.row--ok .row__mark { color: var(--ok); }
+.row--changed .row__mark { color: var(--brand); }
+.row--question .row__mark { color: var(--amber); }
+
+/* The one line that must never wrap: 798 rows stay scannable only if each is
+   exactly one line tall. Long strings simply cut off. */
+.row__text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row--changed .row__text { color: var(--brand); }
+
+.row__sec { flex: none; font-size: 11px; color: var(--muted); max-width: 9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.list-empty { padding: 18px 14px; }
+
+/* ---- editór ---- */
+.edit-pane { overflow-y: auto; min-height: 0; padding: 14px 16px 40px; }
+.empty-hint { padding-top: 24px; }
+
 .card__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 
 .pill {
@@ -99,60 +161,70 @@ main { max-width: 40rem; margin: 0 auto; padding: 14px 14px 40px; }
 .label { font-size: 12px; font-weight: 600; color: var(--muted); margin: 14px 0 5px; text-transform: uppercase; letter-spacing: .04em; }
 
 .source {
-  background: var(--src); border-radius: 8px; padding: 12px;
+  background: var(--src); border-radius: 8px; padding: 11px;
   white-space: pre-wrap; word-break: break-word;
 }
+/* The live text, once edited, is his — say so with the same blue the list uses. */
+.source--live { box-shadow: inset 3px 0 0 var(--brand); }
+.source--orig { font-size: 14px; color: var(--muted); margin-top: 8px; }
 
 .english-ref {
   font-size: 13px; font-style: italic; color: var(--muted);
-  margin: 6px 2px 0; padding-left: 12px; border-left: 2px solid var(--line);
+  margin: 7px 2px 0; padding-left: 11px; border-left: 2px solid var(--line);
 }
 
 textarea {
-  width: 100%; padding: 12px; font: inherit; resize: vertical;
+  width: 100%; padding: 11px; font: inherit; resize: vertical;
   border: 1px solid var(--line); border-radius: 8px;
   background: var(--bg); color: var(--fg);
 }
 textarea:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 
-.shot { margin: 12px 0 0; }
-.shot summary { cursor: pointer; font-size: 14px; color: var(--brand); }
-.shot img { width: 100%; max-width: 300px; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; display: block; }
+.saved-hint { color: var(--ok); font-size: 13px; margin: 8px 0 0; }
+
+.fold { margin: 12px 0 0; border-top: 1px solid var(--line); padding-top: 10px; }
+.fold summary { cursor: pointer; font-size: 13px; color: var(--brand); }
+.fold img { width: 100%; max-width: 260px; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; display: block; }
+.fold .btn { margin-top: 8px; }
 
 /* ---- butaun ---- */
-.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
-.actions--nav { justify-content: space-between; align-items: center; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.actions--nav { justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; }
 
 .btn {
-  font: inherit; padding: 12px 16px; border: 1px solid var(--line);
+  font: inherit; padding: 10px 14px; border: 1px solid var(--line);
   border-radius: 10px; background: var(--card); color: var(--fg);
-  cursor: pointer; min-height: 46px;
+  cursor: pointer; min-height: 42px;
 }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-.btn--sm { padding: 7px 12px; min-height: 0; font-size: 14px; }
-.btn--primary { background: var(--brand); border-color: var(--brand); color: #fff; flex: 1; }
-.btn--ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn--sm { padding: 6px 11px; min-height: 0; font-size: 13px; }
+.btn--primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn--ok { background: var(--ok); border-color: var(--ok); color: #fff; flex: 1; }
 .btn--ghost { background: transparent; }
+.btn--block { display: block; width: 100%; margin-top: 12px; font-weight: 600; font-size: 17px; min-height: 50px; }
 
-/* ---- navegasaun ---- */
-.jump { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-.jump select {
-  flex: 1; min-width: 12rem; padding: 10px; font: inherit;
-  border: 1px solid var(--line); border-radius: 8px;
-  background: var(--card); color: var(--fg);
-}
-.check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.foot { margin-top: 18px; }
 
 /* ---- glosáriu ---- */
 .sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .45); }
 .sheet__inner {
-  position: absolute; inset: auto 0 0 0; max-height: 82dvh; overflow: auto;
-  background: var(--bg); border-radius: 16px 16px 0 0; padding: 16px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  position: absolute; inset: 0 0 0 auto; width: min(30rem, 100%);
+  overflow: auto; background: var(--bg); padding: 16px;
+  border-left: 1px solid var(--line);
 }
 .sheet__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .sheet table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 14px; }
 .sheet th { text-align: left; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); padding: 4px 6px; }
 .sheet td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .sheet h4 { margin: 16px 0 0; font-size: 14px; }
+
+/* ---- telemóvel ---- */
+@media (max-width: 900px) {
+  .app { height: auto; min-height: 100dvh; }
+  .panes { grid-template-columns: 1fr; min-height: 0; }
+  .list-pane { border-right: 0; border-bottom: 1px solid var(--line); grid-template-rows: auto auto; }
+  .list { max-height: 40dvh; }
+  .edit-pane { overflow: visible; }
+  .sheet__inner { inset: auto 0 0 0; width: 100%; max-height: 82dvh; border-radius: 16px 16px 0 0; border-left: 0; }
+}
