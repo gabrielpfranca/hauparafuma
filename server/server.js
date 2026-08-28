@@ -567,6 +567,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // A store listing (Play Console, etc.) links to this without a trailing
+    // slash, which `serveStatic` would otherwise treat as an extensionless SPA
+    // deep link and answer with the app shell instead of the policy page.
+    if (req.method === 'GET' && url.pathname === '/privacy') {
+      res.writeHead(301, { location: '/privacy/' }).end();
+      return;
+    }
+
     // Anything that is not the API is the app itself.
     if (req.method === 'GET' && !route.startsWith('/api/')) {
       serveStatic(url.pathname, res);
