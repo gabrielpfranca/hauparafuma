@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.railway.up.hauparafuma_production.twa",
+        "sha256_cert_fingerprints": ["86:44:A8:9E:70:B6:02:70:07:BF:44:5C:3A:5C:DD:86:37:BC:DE:DB:ED:AA:9B:71:3E:58:D8:13:3C:36:37:B3"]
+      }
+    }]
